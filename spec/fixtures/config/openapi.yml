@@ -1,0 +1,18 @@
+openapi:
+  version: "3.0.0"
+  info:
+    title: "Test API"
+    version: "1.0.0"
+    description: "Test API for spec"
+  servers:
+    - url: "http://localhost:3000"
+      description: "Test server"
+  routes:
+    include_patterns:
+      - "^/api/v1/"
+    exclude_patterns:
+      - "/health"
+  output:
+    directory: "tmp/test_output"
+    filename: "test.yaml"
+    split_files: true

@@ -1,0 +1,132 @@
+---
+"/posts/{post_id}/comments":
+  get:
+    summary: Index Comment
+    operationId: comments_index
+    tags:
+    - Comments
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                array!:
+                  type: string
+                  description: 'TODO: MISSING COMMENT - Add @openapi comment'
+                id:
+                  type: integer
+                  description: Unique comment identifier
+                content:
+                  type: string
+                  description: Comment content
+                author:
+                  type: string
+                  description: Comment author name
+                created_at:
+                  type: string
+                  description: Comment creation timestamp
+                likes:
+                  type: integer
+                  description: Number of likes on this comment
+              required:
+              - id
+              - content
+              - author
+              - created_at
+"/posts":
+  get:
+    summary: Index Post
+    operationId: posts_index
+    tags:
+    - Posts
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                array!:
+                  type: string
+                  description: 'TODO: MISSING COMMENT - Add @openapi comment'
+                id:
+                  type: integer
+                  description: Unique post identifier
+                title:
+                  type: string
+                  description: Post title
+                content:
+                  type: string
+                  description: Post content/body
+                published:
+                  type: boolean
+                  description: Whether the post is published
+                created_at:
+                  type: string
+                  description: Post creation timestamp in ISO 8601 format
+                tags:
+                  type: array
+                  description: Array of tag strings associated with the post
+              required:
+              - id
+              - title
+              - content
+              - published
+              - created_at
+"/posts/{id}":
+  get:
+    summary: Show Post
+    operationId: posts_show
+    tags:
+    - Posts
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  description: Unique post identifier
+                title:
+                  type: string
+                  description: Post title
+                content:
+                  type: string
+                  description: Full post content/body
+                published:
+                  type: boolean
+                  description: Publication status
+                created_at:
+                  type: string
+                  description: Post creation timestamp
+                updated_at:
+                  type: string
+                  description: Last update timestamp
+                author:
+                  type: object
+                  description: Nested object
+                tags:
+                  type: array
+                  description: Post tags for categorization
+                comments_count:
+                  type: integer
+                  description: Total number of comments
+                likes_count:
+                  type: integer
+                  description: Total number of likes
+                published_at:
+                  type: string
+                  description: Publication timestamp
+              required:
+              - id
+              - title
+              - content
+              - published
+              - created_at
