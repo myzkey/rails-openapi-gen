@@ -5,11 +5,23 @@ module RailsOpenapiGen
     class CommentParser
       OPENAPI_COMMENT_REGEX = /@openapi\s+(.+)$/
       OPENAPI_OPERATION_REGEX = /@openapi_operation\s+(.+)$/
+      OPENAPI_PARAM_REGEX = /@openapi_param\s+(.+)$/
+      OPENAPI_QUERY_REGEX = /@openapi_query\s+(.+)$/
+      OPENAPI_BODY_REGEX = /@openapi_body\s+(.+)$/
 
       def parse(comment_text)
         if match = comment_text.match(OPENAPI_OPERATION_REGEX)
           openapi_content = match[1].strip
           return { operation: parse_operation_attributes(openapi_content) }
+        elsif match = comment_text.match(OPENAPI_PARAM_REGEX)
+          openapi_content = match[1].strip
+          return { parameter: parse_parameter_attributes(openapi_content) }
+        elsif match = comment_text.match(OPENAPI_QUERY_REGEX)
+          openapi_content = match[1].strip
+          return { query_parameter: parse_parameter_attributes(openapi_content) }
+        elsif match = comment_text.match(OPENAPI_BODY_REGEX)
+          openapi_content = match[1].strip
+          return { body_parameter: parse_parameter_attributes(openapi_content) }
         elsif match = comment_text.match(OPENAPI_COMMENT_REGEX)
           openapi_content = match[1].strip
           return parse_attributes(openapi_content)
@@ -68,8 +80,8 @@ module RailsOpenapiGen
             attributes[:operationId] = cleaned_value
           when "tags"
             attributes[:tags] = parse_enum(cleaned_value)
-          when "responseDescription", "response_description"
-            attributes[:responseDescription] = cleaned_value
+          when "status", "statusCode", "status_code"
+            attributes[:status] = cleaned_value
           else
             attributes[key.to_sym] = cleaned_value
           end
@@ -105,6 +117,45 @@ module RailsOpenapiGen
         end
         
         items
+      end
+
+      def parse_parameter_attributes(content)
+        attributes = {}
+        
+        parts = content.scan(/(\w+):("[^"]*"|\[[^\]]*\]|\S+)/)
+        
+        # First part should be parameter_name:type
+        if parts.any?
+          first_key, first_value = parts.first
+          attributes[:name] = first_key
+          attributes[:type] = clean_value(first_value)
+        end
+        
+        # Remaining parts are attributes
+        parts[1..-1]&.each do |key, value|
+          cleaned_value = clean_value(value)
+          
+          case key
+          when "required"
+            attributes[:required] = cleaned_value
+          when "description"
+            attributes[:description] = cleaned_value
+          when "enum"
+            attributes[:enum] = parse_enum(cleaned_value)
+          when "format"
+            attributes[:format] = cleaned_value
+          when "minimum", "min"
+            attributes[:minimum] = cleaned_value.to_i
+          when "maximum", "max"
+            attributes[:maximum] = cleaned_value.to_i
+          when "example"
+            attributes[:example] = cleaned_value
+          else
+            attributes[key.to_sym] = cleaned_value
+          end
+        end
+        
+        attributes
       end
     end
   end

@@ -19,14 +19,14 @@ module RailsOpenapiGen
         
         paths_data = {}
         
-        @schemas.each do |route, schema|
-          next if schema.nil? || schema["properties"].nil? || schema["properties"].empty?
+        @schemas.each do |route, data|
+          next if data.nil? || data[:schema].nil? || should_skip_schema?(data[:schema])
           
           path_key = normalize_path(route[:path])
           method = route[:method].downcase
           
           paths_data[path_key] ||= {}
-          paths_data[path_key][method] = build_operation(route, schema)
+          paths_data[path_key][method] = build_operation(route, data[:schema], data[:parameters], data[:operation])
         end
         
         if @config.split_files?
@@ -39,6 +39,23 @@ module RailsOpenapiGen
 
       private
 
+      def should_skip_schema?(schema)
+        return true if schema.nil?
+        
+        # For object schemas, check if properties exist and are not empty
+        if schema["type"] == "object"
+          return schema["properties"].nil? || schema["properties"].empty?
+        end
+        
+        # For array schemas, check if items are properly defined
+        if schema["type"] == "array"
+          return schema["items"].nil?
+        end
+        
+        # For other types, don't skip
+        false
+      end
+
       def setup_directories
         FileUtils.mkdir_p(@base_path)
         if @config.split_files?
@@ -50,22 +67,40 @@ module RailsOpenapiGen
         path.gsub(/:(\w+)/, '{\\1}')
       end
 
-      def build_operation(route, schema)
-        {
-          "summary" => "#{humanize(route[:action])} #{humanize(singularize(route[:controller]))}",
-          "operationId" => "#{route[:controller].gsub('/', '_')}_#{route[:action]}",
-          "tags" => [humanize(route[:controller].split('/').first)],
-          "responses" => {
-            "200" => {
-              "description" => "Successful response",
-              "content" => {
-                "application/json" => {
-                  "schema" => schema
-                }
+      def build_operation(route, schema, parameters = {}, operation_info = nil)
+        operation = {
+          "summary" => operation_info&.dig(:summary) || "#{humanize(route[:action])} #{humanize(singularize(route[:controller]))}",
+          "operationId" => operation_info&.dig(:operationId) || "#{route[:controller].gsub('/', '_')}_#{route[:action]}",
+          "tags" => operation_info&.dig(:tags) || [humanize(route[:controller].split('/').first)]
+        }
+
+        # Add description if provided
+        operation["description"] = operation_info[:description] if operation_info&.dig(:description)
+
+        # Add parameters if they exist
+        openapi_parameters = build_parameters(route, parameters)
+        operation["parameters"] = openapi_parameters unless openapi_parameters.empty?
+
+        # Add request body if body parameters exist
+        request_body = build_request_body(parameters)
+        operation["requestBody"] = request_body if request_body
+
+        # Add responses with configurable status code
+        status_code = operation_info&.dig(:status) || "200"
+        response_description = "Successful response"
+        
+        operation["responses"] = {
+          status_code => {
+            "description" => response_description,
+            "content" => {
+              "application/json" => {
+                "schema" => schema
               }
             }
           }
         }
+
+        operation
       end
 
       def write_paths_files(paths_data)
@@ -139,6 +174,80 @@ module RailsOpenapiGen
         # Simple singularization - remove trailing 's' if present
         str = string.to_s
         str.end_with?('s') ? str[0..-2] : str
+      end
+
+      def build_parameters(route, parameters)
+        openapi_params = []
+
+        # Add path parameters from route
+        path_vars = route[:path].scan(/:(\w+)/).flatten
+        path_vars.each do |path_var|
+          # Look for matching parameter definition
+          path_param = parameters[:path_parameters]&.find { |p| p[:name] == path_var }
+          
+          param = {
+            "name" => path_var,
+            "in" => "path",
+            "required" => true,
+            "schema" => {
+              "type" => path_param&.dig(:type) || "string"
+            }
+          }
+          param["description"] = path_param[:description] if path_param&.dig(:description)
+          openapi_params << param
+        end
+
+        # Add query parameters
+        parameters[:query_parameters]&.each do |query_param|
+          param = {
+            "name" => query_param[:name],
+            "in" => "query",
+            "required" => query_param[:required] != "false",
+            "schema" => build_parameter_schema(query_param)
+          }
+          param["description"] = query_param[:description] if query_param[:description]
+          openapi_params << param
+        end
+
+        openapi_params
+      end
+
+      def build_request_body(parameters)
+        return nil if parameters[:body_parameters].nil? || parameters[:body_parameters].empty?
+
+        properties = {}
+        required = []
+
+        parameters[:body_parameters].each do |body_param|
+          properties[body_param[:name]] = build_parameter_schema(body_param)
+          required << body_param[:name] if body_param[:required] != "false"
+        end
+
+        {
+          "required" => true,
+          "content" => {
+            "application/json" => {
+              "schema" => {
+                "type" => "object",
+                "properties" => properties,
+                "required" => required
+              }
+            }
+          }
+        }
+      end
+
+      def build_parameter_schema(param)
+        schema = { "type" => param[:type] || "string" }
+        
+        schema["description"] = param[:description] if param[:description]
+        schema["enum"] = param[:enum] if param[:enum]
+        schema["format"] = param[:format] if param[:format]
+        schema["minimum"] = param[:minimum] if param[:minimum]
+        schema["maximum"] = param[:maximum] if param[:maximum]
+        schema["example"] = param[:example] if param[:example]
+
+        schema
       end
     end
   end

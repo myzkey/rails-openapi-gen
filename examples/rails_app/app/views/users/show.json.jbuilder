@@ -1,19 +1,7 @@
-# @openapi_operation summary:"Get user details" operationId:"getUserById" tags:[Users,Private] description:"Returns detailed information about a specific user" responseDescription:"Single user object with complete profile information"
+# @openapi_operation summary:"Get user details" tags:[Users] description:"Returns detailed information about a specific user"
 
-# @openapi id:integer required:true description:"Unique user identifier"
-json.id @user.id
-
-# @openapi email:string required:true description:"User email address"
-json.email @user.email
-
-# @openapi name:string required:true description:"Full name of the user"
-json.name @user.name
-
-# @openapi status:string enum:[active,inactive,suspended] description:"Current user status"
-json.status @user.status
-
-# @openapi created_at:string description:"Account creation timestamp in ISO 8601 format"
-json.created_at @user.created_at.iso8601
+# Use partial for basic user info
+json.partial! 'users/user', user: @user
 
 # @openapi role:string enum:[admin,moderator,user] description:"User role in the system"
 json.role @user.role

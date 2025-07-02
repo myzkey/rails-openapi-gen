@@ -11,14 +11,15 @@ module RailsOpenapiGen
       def initialize(jbuilder_path)
         @jbuilder_path = jbuilder_path
         @properties = []
+        @operation_info = nil
         @parsed_files = Set.new
       end
 
       def parse
-        return @properties unless File.exist?(jbuilder_path)
+        return { properties: @properties, operation: @operation_info } unless File.exist?(jbuilder_path)
         
         parse_file(jbuilder_path)
-        @properties
+        { properties: @properties, operation: @operation_info }
       end
 
       private
@@ -41,6 +42,7 @@ module RailsOpenapiGen
         processor.process(ast)
         
         @properties.concat(processor.properties)
+        @operation_info ||= processor.operation_info
         
         processor.partials.each do |partial_path|
           parse_file(partial_path) if File.exist?(partial_path)
@@ -81,39 +83,47 @@ module RailsOpenapiGen
       end
 
       class JbuilderProcessor < Parser::AST::Processor
-        attr_reader :properties, :partials
+        attr_reader :properties, :partials, :operation_info
 
         def initialize(file_path, comments)
           @file_path = file_path
           @comments = comments
+          @operation_info = nil
           @properties = []
           @partials = []
           @comment_parser = CommentParser.new
           @block_stack = []
           @current_object_properties = []
+          @nested_objects = {}
         end
 
         def on_send(node)
           receiver, method_name, *args = node.children
           
-          if json_property?(receiver, method_name)
-            process_json_property(node, method_name.to_s, args)
-          elsif array_call?(receiver, method_name)
+          if array_call?(receiver, method_name)
             process_array_property(node)
           elsif partial_call?(receiver, method_name)
             process_partial(args)
+          elsif json_property?(receiver, method_name)
+            process_json_property(node, method_name.to_s, args)
           end
           
           super
         end
         
         def on_block(node)
-          send_node, _args, body = node.children
-          receiver, method_name, *args = send_node.children
+          send_node, args_node, body = node.children
+          receiver, method_name, *send_args = send_node.children
           
           if json_property?(receiver, method_name) && method_name != :array!
-            # This is a nested object block like json.profile do
-            process_block_property(node, method_name.to_s)
+            # Check if this is an array iteration block (has block arguments)
+            if args_node && args_node.type == :args && args_node.children.any?
+              # This is an array iteration block like json.tags @tags do |tag|
+              process_array_iteration_block(node, method_name.to_s)
+            else
+              # This is a nested object block like json.profile do
+              process_nested_object_block(node, method_name.to_s)
+            end
           elsif array_call?(receiver, method_name)
             # This is json.array! block
             @block_stack.push(:array)
@@ -162,13 +172,92 @@ module RailsOpenapiGen
           @properties << property_info
         end
 
-        def process_block_property(node, property_name)
+        def process_array_iteration_block(node, property_name)
           comment_data = find_comment_for_node(node)
           
+          # Save current context
+          previous_properties = @properties.dup
+          previous_partials = @partials.dup
+          
+          # Create a temporary properties array for array items
+          @properties = []
+          @partials = []
+          @block_stack.push(:array)
+          
+          # Process the block contents
+          send_node, _args, body = node.children
+          process(body) if body
+          
+          # Collect item properties
+          item_properties = @properties.dup
+          
+          # Process any partials found in this block
+          @partials.each do |partial_path|
+            if File.exist?(partial_path)
+              partial_properties = parse_partial_for_nested_object(partial_path)
+              item_properties.concat(partial_properties)
+            end
+          end
+          
+          # Restore context
+          @properties = previous_properties
+          @partials = previous_partials
+          @block_stack.pop
+          
+          # Build array schema with items
+          property_info = {
+            property: property_name,
+            comment_data: comment_data || { type: "array" },
+            is_array: true,
+            array_item_properties: item_properties
+          }
+          
+          @properties << property_info
+        end
+        
+        def process_nested_object_block(node, property_name)
+          comment_data = find_comment_for_node(node)
+          
+          # Save current context
+          previous_nested_objects = @nested_objects.dup
+          previous_properties = @properties.dup
+          previous_partials = @partials.dup
+          
+          # Create a temporary properties array for this nested object
+          @properties = []
+          @partials = []
+          @block_stack.push(:object)
+          
+          # Process the block contents
+          send_node, _args, body = node.children
+          process(body) if body
+          
+          # Collect nested properties
+          nested_properties = @properties.dup
+          
+          # Process any partials found in this block
+          @partials.each do |partial_path|
+            if File.exist?(partial_path)
+              partial_properties = parse_partial_for_nested_object(partial_path)
+              nested_properties.concat(partial_properties)
+            end
+          end
+          
+          # Restore context
+          @properties = previous_properties
+          @partials = previous_partials # Don't add nested partials to main partials
+          @nested_objects = previous_nested_objects
+          @block_stack.pop
+          
+          # Store nested object info
+          @nested_objects[property_name] = nested_properties
+          
+          # Add the parent property
           property_info = {
             property: property_name,
             comment_data: comment_data || { type: "object" },
-            is_object: true
+            is_object: true,
+            nested_properties: nested_properties
           }
           
           @properties << property_info
@@ -206,7 +295,14 @@ module RailsOpenapiGen
             comment_line = comment.location.line
             comment_line == line_number - 1 || comment_line == line_number
           end&.then do |comment|
-            @comment_parser.parse(comment.text)
+            parsed = @comment_parser.parse(comment.text)
+            
+            # Extract operation info if this is an operation comment
+            if parsed&.dig(:operation) && @operation_info.nil?
+              @operation_info = parsed[:operation]
+            end
+            
+            parsed
           end
         end
 
@@ -214,10 +310,29 @@ module RailsOpenapiGen
           dir = File.dirname(@file_path)
           
           if partial_name.include?("/")
-            Rails.root.join("app", "views", "#{partial_name}.json.jbuilder")
+            # Find the app/views directory from the current file path
+            path_parts = @file_path.split('/')
+            views_index = path_parts.rindex('views')
+            if views_index
+              views_path = path_parts[0..views_index].join('/')
+              # For paths like 'users/user', convert to 'users/_user.json.jbuilder'
+              parts = partial_name.split('/')
+              dir_part = parts[0..-2].join('/')
+              file_part = "_#{parts[-1]}"
+              File.join(views_path, dir_part, "#{file_part}.json.jbuilder")
+            else
+              File.join(dir, "#{partial_name}.json.jbuilder")
+            end
           else
             File.join(dir, "_#{partial_name}.json.jbuilder")
           end
+        end
+        
+        def parse_partial_for_nested_object(partial_path)
+          # Create a new parser to parse the partial independently
+          partial_parser = JbuilderParser.new(partial_path)
+          result = partial_parser.parse
+          result[:properties]
         end
       end
     end

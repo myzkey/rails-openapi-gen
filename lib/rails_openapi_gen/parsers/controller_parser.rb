@@ -22,11 +22,13 @@ module RailsOpenapiGen
         return {} unless action_node
 
         jbuilder_path = extract_jbuilder_path(action_node)
+        parameters = extract_parameters_from_comments(content, action_node)
         
         {
           controller_path: controller_path,
           jbuilder_path: jbuilder_path,
-          action: route[:action]
+          action: route[:action],
+          parameters: parameters
         }
       end
 
@@ -75,6 +77,45 @@ module RailsOpenapiGen
         # Rails convention: app/views/{controller}/{action}.json.jbuilder
         template_path = Rails.root.join("app", "views", route[:controller], "#{route[:action]}.json.jbuilder")
         File.exist?(template_path) ? template_path.to_s : nil
+      end
+
+      def extract_parameters_from_comments(content, action_node)
+        return {} unless action_node
+
+        lines = content.lines
+        action_line = action_node.location.line - 1 # Convert to 0-based index
+        
+        # Look for comments before the action method
+        parameters = {
+          path_parameters: [],
+          query_parameters: [],
+          body_parameters: []
+        }
+        
+        comment_parser = RailsOpenapiGen::Parsers::CommentParser.new
+        
+        # Scan backwards from the action line to find comments
+        (action_line - 1).downto(0) do |line_index|
+          line = lines[line_index].strip
+          
+          # Stop if we encounter a non-comment line that's not empty
+          break if !line.empty? && !line.start_with?('#')
+          
+          next if line.empty? || !line.include?('@openapi')
+          
+          parsed = comment_parser.parse(line)
+          next unless parsed
+          
+          if parsed[:parameter]
+            parameters[:path_parameters] << parsed[:parameter]
+          elsif parsed[:query_parameter]
+            parameters[:query_parameters] << parsed[:query_parameter]
+          elsif parsed[:body_parameter]
+            parameters[:body_parameters] << parsed[:body_parameter]
+          end
+        end
+        
+        parameters
       end
 
       class ActionMethodProcessor < Parser::AST::Processor

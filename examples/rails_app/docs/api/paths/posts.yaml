@@ -5,37 +5,43 @@
     operationId: comments_index
     tags:
     - Comments
+    parameters:
+    - name: post_id
+      in: path
+      required: true
+      schema:
+        type: string
     responses:
       '200':
         description: Successful response
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                array!:
-                  type: string
-                  description: 'TODO: MISSING COMMENT - Add @openapi comment'
-                id:
-                  type: integer
-                  description: Unique comment identifier
-                content:
-                  type: string
-                  description: Comment content
-                author:
-                  type: string
-                  description: Comment author name
-                created_at:
-                  type: string
-                  description: Comment creation timestamp
-                likes:
-                  type: integer
-                  description: Number of likes on this comment
-              required:
-              - id
-              - content
-              - author
-              - created_at
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: Unique comment identifier
+                  content:
+                    type: string
+                    description: Comment content
+                  author:
+                    type: string
+                    description: Comment author name
+                  created_at:
+                    type: string
+                    description: Comment creation timestamp
+                  likes:
+                    type: integer
+                    description: Number of likes on this comment
+                required:
+                - id
+                - content
+                - author
+                - created_at
+                - likes
 "/posts":
   get:
     summary: Index Post
@@ -48,41 +54,58 @@
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                array!:
-                  type: string
-                  description: 'TODO: MISSING COMMENT - Add @openapi comment'
-                id:
-                  type: integer
-                  description: Unique post identifier
-                title:
-                  type: string
-                  description: Post title
-                content:
-                  type: string
-                  description: Post content/body
-                published:
-                  type: boolean
-                  description: Whether the post is published
-                created_at:
-                  type: string
-                  description: Post creation timestamp in ISO 8601 format
-                tags:
-                  type: array
-                  description: Array of tag strings associated with the post
-              required:
-              - id
-              - title
-              - content
-              - published
-              - created_at
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: Unique post identifier
+                  title:
+                    type: string
+                    description: Post title
+                  content:
+                    type: string
+                    description: Post content/body
+                  published:
+                    type: boolean
+                    description: Whether the post is published
+                  created_at:
+                    type: string
+                    description: Post creation timestamp in ISO 8601 format
+                  tags:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: integer
+                          description: Tag unique identifier
+                        color:
+                          type: string
+                          description: Tag color in hex format
+                      required:
+                      - name
+                      - color
+                required:
+                - id
+                - title
+                - content
+                - published
+                - created_at
+                - tags
 "/posts/{id}":
   get:
     summary: Show Post
     operationId: posts_show
     tags:
     - Posts
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
     responses:
       '200':
         description: Successful response
@@ -91,29 +114,38 @@
             schema:
               type: object
               properties:
-                id:
-                  type: integer
-                  description: Unique post identifier
-                title:
-                  type: string
-                  description: Post title
-                content:
-                  type: string
-                  description: Full post content/body
-                published:
-                  type: boolean
-                  description: Publication status
-                created_at:
-                  type: string
-                  description: Post creation timestamp
-                updated_at:
-                  type: string
-                  description: Last update timestamp
                 author:
                   type: object
-                  description: Nested object
+                  properties:
+                    id:
+                      type: integer
+                      description: User unique identifier
+                    name:
+                      type: string
+                      description: User full name
+                    email:
+                      type: string
+                      description: User email address
+                    status:
+                      type: string
+                      description: Current user status
+                      enum:
+                      - active
+                      - inactive
+                      - suspended
+                    created_at:
+                      type: string
+                      description: Account creation timestamp
+                  required:
+                  - id
+                  - name
+                  - email
+                  - status
+                  - created_at
                 tags:
                   type: array
+                  items:
+                    type: string
                   description: Post tags for categorization
                 comments_count:
                   type: integer
@@ -124,9 +156,33 @@
                 published_at:
                   type: string
                   description: Publication timestamp
+                id:
+                  type: integer
+                  description: Post unique identifier
+                title:
+                  type: string
+                  description: Post title
+                content:
+                  type: string
+                  description: Post content body
+                published:
+                  type: boolean
+                  description: Whether the post is published
+                created_at:
+                  type: string
+                  description: Post creation timestamp
+                updated_at:
+                  type: string
+                  description: Last update timestamp
               required:
+              - author
+              - tags
+              - comments_count
+              - likes_count
+              - published_at
               - id
               - title
               - content
               - published
               - created_at
+              - updated_at

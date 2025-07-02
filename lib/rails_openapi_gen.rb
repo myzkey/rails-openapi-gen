@@ -4,6 +4,7 @@ require "rails_openapi_gen/version"
 require "rails_openapi_gen/configuration"
 require "rails_openapi_gen/parsers/comment_parser"
 require "rails_openapi_gen/generators/yaml_generator"
+require "rails_openapi_gen/importer"
 
 # Rails integration is handled by Engine
 
@@ -33,6 +34,10 @@ module RailsOpenapiGen
     def check
       Checker.new.run
     end
+
+    def import(openapi_file = nil)
+      Importer.new(openapi_file).run
+    end
   end
 
   class Generator
@@ -49,9 +54,13 @@ module RailsOpenapiGen
         controller_info = Parsers::ControllerParser.new(route).parse
         
         if controller_info[:jbuilder_path]
-          jbuilder_ast = Parsers::JbuilderParser.new(controller_info[:jbuilder_path]).parse
-          schema = build_schema(jbuilder_ast)
-          schemas[route] = schema
+          jbuilder_result = Parsers::JbuilderParser.new(controller_info[:jbuilder_path]).parse
+          schema = build_schema(jbuilder_result[:properties])
+          schemas[route] = {
+            schema: schema,
+            parameters: controller_info[:parameters] || {},
+            operation: jbuilder_result[:operation]
+          }
         end
       end
 
@@ -79,7 +88,7 @@ module RailsOpenapiGen
         property_schema = build_property_schema(node)
         
         schema["properties"][property] = property_schema
-        schema["required"] << property if comment_data[:required] == "true"
+        schema["required"] << property if comment_data[:required] != "false"
       end
 
       schema
@@ -98,7 +107,7 @@ module RailsOpenapiGen
         
         property_schema = build_property_schema(node)
         item_properties[property] = property_schema
-        required_fields << property if comment_data[:required] == "true"
+        required_fields << property if comment_data[:required] != "false"
       end
 
       {
@@ -118,19 +127,51 @@ module RailsOpenapiGen
       # Handle different property types
       if node[:is_object] || node[:is_nested]
         property_schema["type"] = "object"
-        property_schema["description"] = comment_data[:description] || "Nested object"
+        
+        # Build nested properties if they exist
+        if node[:nested_properties] && !node[:nested_properties].empty?
+          nested_schema = build_nested_object_schema(node[:nested_properties])
+          property_schema["properties"] = nested_schema[:properties]
+          property_schema["required"] = nested_schema[:required] if nested_schema[:required] && !nested_schema[:required].empty?
+        end
       elsif node[:is_array]
-        if comment_data[:items]
-          property_schema = comment_data.dup
+        property_schema["type"] = "array"
+        
+        if node[:array_item_properties] && !node[:array_item_properties].empty?
+          # Build items schema from array iteration block
+          items_schema = build_nested_object_schema(node[:array_item_properties])
+          items_def = {
+            "type" => "object",
+            "properties" => items_schema[:properties]
+          }
+          items_def["required"] = items_schema[:required] if items_schema[:required] && !items_schema[:required].empty?
+          property_schema["items"] = items_def
+        elsif comment_data[:items]
+          # Use specified items type from comment
+          property_schema["items"] = { "type" => comment_data[:items] }
         else
-          property_schema["type"] = "array"
+          # Default to object items
           property_schema["items"] = { "type" => "object" }
         end
       elsif comment_data[:type] && comment_data[:type] != "TODO: MISSING COMMENT"
         property_schema["type"] = comment_data[:type]
+        
+        # Handle array types
+        if comment_data[:type] == "array"
+          if comment_data[:items]
+            # Use specified items type
+            property_schema["items"] = { "type" => comment_data[:items] }
+          else
+            # Default to string items if no items type is specified
+            property_schema["items"] = { "type" => "string" }
+          end
+        end
       else
+        # Only show TODO message if no @openapi comment exists at all
         property_schema["type"] = "string"
-        property_schema["description"] = "TODO: MISSING COMMENT - Add @openapi comment"
+        if comment_data.nil? || comment_data.empty?
+          property_schema["description"] = "TODO: MISSING COMMENT - Add @openapi comment"
+        end
       end
 
       # Add common properties
@@ -138,6 +179,21 @@ module RailsOpenapiGen
       property_schema["enum"] = comment_data[:enum] if comment_data[:enum]
 
       property_schema
+    end
+    
+    def build_nested_object_schema(nested_properties)
+      schema = { properties: {}, required: [] }
+      
+      nested_properties.each do |node|
+        property = node[:property]
+        comment_data = node[:comment_data] || {}
+        
+        property_schema = build_property_schema(node)
+        schema[:properties][property] = property_schema
+        schema[:required] << property if comment_data[:required] != "false"
+      end
+      
+      schema
     end
   end
 
