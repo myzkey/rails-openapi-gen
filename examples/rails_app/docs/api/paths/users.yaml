@@ -1,7 +1,7 @@
 ---
 "/users/{user_id}/posts":
   get:
-    summary: Index Post
+    summary: List all posts
     operationId: posts_index
     tags:
     - Posts
@@ -58,7 +58,7 @@
                 - created_at
                 - tags
   post:
-    summary: Create Post
+    summary: Create new post
     operationId: posts_create
     tags:
     - Posts
@@ -91,10 +91,11 @@
               - created_at
 "/users/{user_id}/posts/{id}":
   get:
-    summary: Show Post
+    summary: Get post details
     operationId: posts_show
     tags:
     - Posts
+    description: Returns detailed information about a specific post
     parameters:
     - name: user_id
       in: path
@@ -201,14 +202,39 @@
               type: array
               items:
                 type: object
-                properties: {}
-                required: []
+                properties:
+                  id:
+                    type: integer
+                    description: User unique identifier
+                  name:
+                    type: string
+                    description: User full name
+                  email:
+                    type: string
+                    description: User email address
+                  status:
+                    type: string
+                    description: Current user status
+                    enum:
+                    - active
+                    - inactive
+                    - suspended
+                  created_at:
+                    type: string
+                    description: Account creation timestamp
+                required:
+                - id
+                - name
+                - email
+                - status
+                - created_at
 "/users/{id}":
   get:
-    summary: Show User
+    summary: Get user details
     operationId: users_show
     tags:
     - Users
+    description: Returns detailed information about a specific user
     parameters:
     - name: id
       in: path

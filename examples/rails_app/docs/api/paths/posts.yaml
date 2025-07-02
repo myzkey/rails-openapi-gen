@@ -1,10 +1,12 @@
 ---
 "/posts/{post_id}/comments":
   get:
-    summary: Index Comment
+    summary: List comments
     operationId: comments_index
     tags:
     - Comments
+    - Public
+    description: Returns all comments for a specific post
     parameters:
     - name: post_id
       in: path
@@ -44,7 +46,7 @@
                 - likes
 "/posts":
   get:
-    summary: Index Post
+    summary: List all posts
     operationId: posts_index
     tags:
     - Posts
@@ -96,10 +98,11 @@
                 - tags
 "/posts/{id}":
   get:
-    summary: Show Post
+    summary: Get post details
     operationId: posts_show
     tags:
     - Posts
+    description: Returns detailed information about a specific post
     parameters:
     - name: id
       in: path

@@ -101,7 +101,12 @@ module RailsOpenapiGen
           receiver, method_name, *args = node.children
           
           if array_call?(receiver, method_name)
-            process_array_property(node)
+            # Check if this is an array with partial
+            if args.any? && args.any? { |arg| arg.type == :hash && has_partial_key?(arg) }
+              process_array_with_partial(node, args)
+            else
+              process_array_property(node)
+            end
           elsif partial_call?(receiver, method_name)
             process_partial(args)
           elsif json_property?(receiver, method_name)
@@ -170,6 +175,59 @@ module RailsOpenapiGen
           }
           
           @properties << property_info
+        end
+        
+        def process_array_with_partial(node, args)
+          # Extract partial path from the hash arguments
+          partial_path = nil
+          args.each do |arg|
+            if arg.type == :hash
+              arg.children.each do |pair|
+                if pair.type == :pair
+                  key, value = pair.children
+                  if key.type == :sym && key.children.first == :partial && value.type == :str
+                    partial_path = value.children.first
+                    break
+                  end
+                end
+              end
+            end
+          end
+          
+          if partial_path
+            # Resolve the partial path and parse it
+            resolved_path = resolve_partial_path(partial_path)
+            if resolved_path && File.exist?(resolved_path)
+              # Parse the partial to get its properties
+              partial_parser = JbuilderParser.new(resolved_path)
+              partial_result = partial_parser.parse
+              
+              # Create array schema with items from the partial
+              property_info = {
+                property: "items",
+                comment_data: { type: "array" },
+                is_array_root: true,
+                array_item_properties: partial_result[:properties]
+              }
+              
+              @properties << property_info
+            else
+              # Fallback to regular array processing
+              process_array_property(node)
+            end
+          else
+            # Fallback to regular array processing
+            process_array_property(node)
+          end
+        end
+        
+        def has_partial_key?(hash_node)
+          hash_node.children.any? do |pair|
+            if pair.type == :pair
+              key, _value = pair.children
+              key.type == :sym && key.children.first == :partial
+            end
+          end
         end
 
         def process_array_iteration_block(node, property_name)
@@ -291,18 +349,20 @@ module RailsOpenapiGen
         def find_comment_for_node(node)
           line_number = node.location.line
           
+          # First check all comments for operation info
+          @comments.each do |comment|
+            parsed = @comment_parser.parse(comment.text)
+            if parsed&.dig(:operation) && @operation_info.nil?
+              @operation_info = parsed[:operation]
+            end
+          end
+          
+          # Then find comment for the specific node
           @comments.reverse.find do |comment|
             comment_line = comment.location.line
             comment_line == line_number - 1 || comment_line == line_number
           end&.then do |comment|
-            parsed = @comment_parser.parse(comment.text)
-            
-            # Extract operation info if this is an operation comment
-            if parsed&.dig(:operation) && @operation_info.nil?
-              @operation_info = parsed[:operation]
-            end
-            
-            parsed
+            @comment_parser.parse(comment.text)
           end
         end
 
