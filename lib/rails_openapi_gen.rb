@@ -99,15 +99,31 @@ module RailsOpenapiGen
       item_properties = {}
       required_fields = []
 
-      ast.each do |node|
-        next if node[:is_array_root]
-        
-        property = node[:property]
-        comment_data = node[:comment_data] || {}
-        
-        property_schema = build_property_schema(node)
-        item_properties[property] = property_schema
-        required_fields << property if comment_data[:required] != "false"
+      # Find the array root node to check for array_item_properties
+      array_root_node = ast.find { |node| node[:is_array_root] }
+      
+      if array_root_node && array_root_node[:array_item_properties]
+        # Use properties from the parsed partial
+        array_root_node[:array_item_properties].each do |node|
+          property = node[:property]
+          comment_data = node[:comment_data] || {}
+          
+          property_schema = build_property_schema(node)
+          item_properties[property] = property_schema
+          required_fields << property if comment_data[:required] != "false"
+        end
+      else
+        # Fall back to looking for non-root properties
+        ast.each do |node|
+          next if node[:is_array_root]
+          
+          property = node[:property]
+          comment_data = node[:comment_data] || {}
+          
+          property_schema = build_property_schema(node)
+          item_properties[property] = property_schema
+          required_fields << property if comment_data[:required] != "false"
+        end
       end
 
       {

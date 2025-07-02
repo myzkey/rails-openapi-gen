@@ -53,7 +53,6 @@ spec/fixtures/tmp/
 examples/rails_app/openapi*/
 examples/rails_app/test_output*/
 examples/rails_app/examples/
-examples/rails_app/vendor/bundle/
 examples/rails_app/tmp/
 examples/rails_app/config/master.key
 examples/rails_app/vendor
