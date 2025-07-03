@@ -56,6 +56,13 @@ examples/rails_app/examples/
 examples/rails_app/tmp/
 examples/rails_app/config/master.key
 examples/rails_app/vendor
+
+examples/rails_gen_comment/openapi*/
+examples/rails_gen_comment/test_output*/
+examples/rails_gen_comment/examples/
+examples/rails_gen_comment/tmp/
+examples/rails_gen_comment/config/master.key
+examples/rails_gen_comment/vendor
 # IDE and editor files
 .vscode/
 .idea/
