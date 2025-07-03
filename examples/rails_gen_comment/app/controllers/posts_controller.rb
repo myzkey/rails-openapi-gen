@@ -1,0 +1,46 @@
+class PostsController < ApplicationController
+  def index
+    @posts = [
+      { 
+        id: 1, 
+        title: "First Post", 
+        content: "This is the first post", 
+        published: true,
+        created_at: Time.current,
+        tags: ["ruby", "rails"]
+      },
+      { 
+        id: 2, 
+        title: "Second Post", 
+        content: "This is the second post", 
+        published: false,
+        created_at: 1.day.ago,
+        tags: ["javascript", "react"]
+      }
+    ]
+  end
+
+  def show
+    @post = {
+      id: params[:id].to_i,
+      title: "Sample Post #{params[:id]}",
+      content: "This is a sample post content for post #{params[:id]}",
+      published: true,
+      created_at: Time.current,
+      updated_at: Time.current,
+      author: {
+        id: 1,
+        name: "John Doe",
+        email: "john@example.com"
+      },
+      tags: ["sample", "test"],
+      comments_count: 5,
+      likes_count: 10
+    }
+  end
+
+  def create
+    # POST endpoint - no view template needed for this example
+    render json: { success: true, message: "Post created successfully" }
+  end
+end
