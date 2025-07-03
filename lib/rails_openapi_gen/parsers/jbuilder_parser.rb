@@ -95,6 +95,7 @@ module RailsOpenapiGen
           @block_stack = []
           @current_object_properties = []
           @nested_objects = {}
+          @conditional_stack = []
         end
 
         def on_send(node)
@@ -134,6 +135,19 @@ module RailsOpenapiGen
             @block_stack.push(:array)
             super
             @block_stack.pop
+          else
+            super
+          end
+        end
+
+        def on_if(node)
+          # Check if this if statement has a conditional comment
+          comment_data = find_comment_for_node(node)
+          
+          if comment_data && comment_data[:conditional]
+            @conditional_stack.push(true)
+            super
+            @conditional_stack.pop
           else
             super
           end
@@ -318,6 +332,11 @@ module RailsOpenapiGen
             nested_properties: nested_properties
           }
           
+          # Mark as optional if inside a conditional block
+          if @conditional_stack.any?
+            property_info[:is_conditional] = true
+          end
+          
           @properties << property_info
         end
 
@@ -329,6 +348,11 @@ module RailsOpenapiGen
           
           unless comment_data && !comment_data.empty?
             property_info[:comment_data] = { type: "TODO: MISSING COMMENT" }
+          end
+          
+          # Mark as optional if inside a conditional block
+          if @conditional_stack.any?
+            property_info[:is_conditional] = true
           end
           
           @properties << property_info

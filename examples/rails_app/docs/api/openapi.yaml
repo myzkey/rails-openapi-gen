@@ -466,6 +466,9 @@ paths:
                     - admin
                     - moderator
                     - user
+                  admin_notes:
+                    type: string
+                    description: Admin-only notes about the user
                   profile:
                     type: object
                     properties:
@@ -478,10 +481,8 @@ paths:
                       verified:
                         type: boolean
                         description: Whether the user's email is verified
-                    required:
-                    - bio
-                    - avatar_url
-                    - verified
+                    description: User profile information (only present if profile
+                      exists)
                   posts:
                     type: array
                     items:
@@ -516,6 +517,21 @@ paths:
                         - free
                         - premium
                         - enterprise
+                      premium_features:
+                        type: array
+                        items:
+                          type: string
+                        description: List of premium features enabled
+                      billing_info:
+                        type: object
+                        properties:
+                          plan:
+                            type: string
+                            description: Current billing plan
+                          next_billing_date:
+                            type: string
+                            description: Next billing date
+                        description: Billing information for premium users
                     required:
                     - last_login
                     - login_count
@@ -541,7 +557,6 @@ paths:
                     description: Account creation timestamp
                 required:
                 - role
-                - profile
                 - posts
                 - metadata
                 - id
