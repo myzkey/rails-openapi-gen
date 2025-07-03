@@ -113,5 +113,27 @@ RSpec.describe RailsOpenapiGen::Parsers::CommentParser do
         expect(result[:enum]).to eq(["high", "medium", "low"])
       end
     end
+
+    context "with conditional comments" do
+      it "parses conditional comment" do
+        comment = "# @openapi conditional:true"
+        result = parser.parse(comment)
+
+        expect(result).to eq({
+          conditional: true
+        })
+      end
+
+      it "does not parse conditional with extra attributes" do
+        comment = "# @openapi conditional:true extra:content"
+        result = parser.parse(comment)
+
+        expect(result).to eq({
+          field_name: "conditional",
+          type: "true",
+          extra: "content"
+        })
+      end
+    end
   end
 end

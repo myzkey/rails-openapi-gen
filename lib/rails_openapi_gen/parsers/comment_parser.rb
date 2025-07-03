@@ -8,9 +8,12 @@ module RailsOpenapiGen
       OPENAPI_PARAM_REGEX = /@openapi_param\s+(.+)$/
       OPENAPI_QUERY_REGEX = /@openapi_query\s+(.+)$/
       OPENAPI_BODY_REGEX = /@openapi_body\s+(.+)$/
+      OPENAPI_CONDITIONAL_REGEX = /@openapi\s+conditional:true\s*$/
 
       def parse(comment_text)
-        if match = comment_text.match(OPENAPI_OPERATION_REGEX)
+        if comment_text.match?(OPENAPI_CONDITIONAL_REGEX)
+          return { conditional: true }
+        elsif match = comment_text.match(OPENAPI_OPERATION_REGEX)
           openapi_content = match[1].strip
           return { operation: parse_operation_attributes(openapi_content) }
         elsif match = comment_text.match(OPENAPI_PARAM_REGEX)

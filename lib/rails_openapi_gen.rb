@@ -88,7 +88,10 @@ module RailsOpenapiGen
         property_schema = build_property_schema(node)
         
         schema["properties"][property] = property_schema
-        schema["required"] << property if comment_data[:required] != "false"
+        # Don't mark conditional properties as required, even if they have required:true
+        if comment_data[:required] != "false" && !node[:is_conditional]
+          schema["required"] << property
+        end
       end
 
       schema
@@ -110,7 +113,9 @@ module RailsOpenapiGen
           
           property_schema = build_property_schema(node)
           item_properties[property] = property_schema
-          required_fields << property if comment_data[:required] != "false"
+          if comment_data[:required] != "false" && !node[:is_conditional]
+            required_fields << property
+          end
         end
       else
         # Fall back to looking for non-root properties
@@ -122,7 +127,9 @@ module RailsOpenapiGen
           
           property_schema = build_property_schema(node)
           item_properties[property] = property_schema
-          required_fields << property if comment_data[:required] != "false"
+          if comment_data[:required] != "false" && !node[:is_conditional]
+            required_fields << property
+          end
         end
       end
 
@@ -206,7 +213,9 @@ module RailsOpenapiGen
         
         property_schema = build_property_schema(node)
         schema[:properties][property] = property_schema
-        schema[:required] << property if comment_data[:required] != "false"
+        if comment_data[:required] != "false" && !node[:is_conditional]
+          schema[:required] << property
+        end
       end
       
       schema
