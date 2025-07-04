@@ -6,23 +6,27 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
 
   # API routes for testing rails-openapi-gen
-  resources :users, only: [:index, :show, :create, :update, :destroy] do
-    resources :posts, only: [:index, :show, :create]
-    member do
-      patch :activate
-      patch :deactivate
+  namespace :api do
+    get 'dashboard', to: 'dashboard#index'
+
+    resources :users, only: [:index, :show, :create, :update, :destroy] do
+      resources :posts, only: [:index, :show, :create]
+      member do
+        patch :activate
+        patch :deactivate
+      end
     end
-  end
 
-  resources :posts, only: [:index, :show] do
-    resources :comments, only: [:index, :create]
-  end
+    resources :posts, only: [:index, :show] do
+      resources :comments, only: [:index, :create]
+    end
 
-  # Authentication routes
-  namespace :auth do
-    post :login
-    post :register  
-    delete :logout
+    # Authentication routes
+    namespace :auth do
+      post :login
+      post :register
+      delete :logout
+    end
   end
 
   # Admin routes

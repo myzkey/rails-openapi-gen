@@ -161,22 +161,21 @@
                   description: Publication timestamp
                 id:
                   type: integer
-                  description: Post unique identifier
+                  description: Unique post identifier
                 title:
                   type: string
                   description: Post title
                 content:
                   type: string
-                  description: Post content body
+                  description: Post content/body
                 published:
                   type: boolean
                   description: Whether the post is published
                 created_at:
                   type: string
-                  description: Post creation timestamp
+                  description: Post creation timestamp in ISO 8601 format
                 updated_at:
                   type: string
-                  description: Last update timestamp
               required:
               - author
               - tags

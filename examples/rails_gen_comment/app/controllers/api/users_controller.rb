@@ -1,4 +1,4 @@
-class UsersController < ApplicationController
+class Api::UsersController < ApplicationController
   def index
     @users = [
       { id: 1, email: "john@example.com", name: "John Doe", status: "active" },

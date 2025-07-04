@@ -4,7 +4,7 @@
 RailsOpenapiGen.configure do |config|
   # OpenAPI specification version
   config.openapi_version = "3.0.0"
-  
+
   # API information
   config.info = {
     title: "User Management API",
@@ -20,7 +20,7 @@ RailsOpenapiGen.configure do |config|
       url: "https://opensource.org/licenses/MIT"
     }
   }
-  
+
   # Server configurations
   config.servers = [
     {
@@ -36,15 +36,10 @@ RailsOpenapiGen.configure do |config|
       description: "Development server"
     }
   ]
-  
+
   # Route filtering
   config.route_patterns = {
     include: [
-      /^\/users/,      # User routes
-      /^\/posts/,      # Post routes
-      /^\/comments/,   # Comment routes  
-      /^\/auth/,       # Authentication routes
-      /^\/admin/,      # Admin routes
       /^\/api\//       # API routes
     ],
     exclude: [
@@ -52,7 +47,7 @@ RailsOpenapiGen.configure do |config|
       /\/up/           # Health check
     ]
   }
-  
+
   # Output configuration
   config.output = {
     directory: "docs/api",

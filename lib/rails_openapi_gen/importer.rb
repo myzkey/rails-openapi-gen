@@ -358,61 +358,34 @@ module RailsOpenapiGen
           indent_stack.pop
         end
         
-        # Check if this line is a json property
-        if json_property_line?(line)
-          property_name = extract_property_name(line)
-          
-          if property_name
-            current_schema = current_schema_stack.last
-            
-            if current_schema && current_schema['properties']
-              property_schema = current_schema['properties'][property_name]
-              
-              if property_schema && !has_openapi_comment?(lines, index)
-                # Add comment before this line
-                comment = generate_property_comment(property_name, property_schema)
-                new_lines << (' ' * current_indent) + comment + "\n" if comment
-              end
-              
-              # Check if this line opens a block
-              if line.include?(' do')
-                in_block_stack << true
-                if property_schema
-                  # Push the nested schema onto the stack
-                  if property_schema['type'] == 'object' && property_schema['properties']
-                    current_schema_stack << property_schema
-                    indent_stack << current_indent
-                  elsif property_schema['type'] == 'array' && property_schema['items'] && property_schema['items']['properties']
-                    current_schema_stack << property_schema['items']
-                    indent_stack << current_indent
-                  end
-                end
-              elsif line.include?(' do |') && property_schema && property_schema['type'] == 'array'
-                # Array iteration block
-                in_block_stack << true
-                if property_schema['items'] && property_schema['items']['properties']
-                  current_schema_stack << property_schema['items']
-                  indent_stack << current_indent
-                end
-              end
-            end
-          end
-        # Check for json.array! patterns
-        elsif line.strip.include?('json.array!')
+        # Check for json.array! patterns first (before general json property check)
+        if line.strip.include?('json.array!')
           # Handle json.array! @posts do |post| patterns
           match = line.strip.match(/^json\.array!\s+@(\w+)\s+do\s+\|(\w+)\|/)
           if match
             collection_name = match[1]  # e.g., "posts"
             item_name = match[2]        # e.g., "post"
             
+            # Add comment for the array itself if this is a root-level array
+            if current_schema_stack.size == 1 && current_schema_stack.first&.dig('type') == 'array'
+              unless has_openapi_comment?(lines, index)
+                array_comment = "# @openapi root:array items:object"
+                new_lines << (' ' * current_indent) + array_comment + "\n"
+              end
+            end
             
-            # Look for array item schema
-            item_schema = @partial_schemas[item_name.singularize]
+            # Look for array item schema - try response_schema['items'] first
+            item_schema = current_schema_stack.last&.dig('items')
+            # For root-level arrays, use the response schema items directly
+            if !item_schema && current_schema_stack.size == 1 && current_schema_stack.first&.dig('type') == 'array'
+              item_schema = current_schema_stack.first['items']
+            end
+            item_schema ||= @partial_schemas[item_name.singularize]
+            
             if item_schema
               current_schema_stack << item_schema
               indent_stack << current_indent
               in_block_stack << true
-            else
             end
           end
         # Check for other array patterns like json.tags @post[:tags] do |tag|
@@ -421,7 +394,6 @@ module RailsOpenapiGen
           if match
             property_name = match[1]  # e.g., "tags"
             item_name = match[2]      # e.g., "tag"
-            
             
             # Look for this property in current schema
             current_schema = current_schema_stack.last
@@ -462,6 +434,45 @@ module RailsOpenapiGen
               # We're inside a block, current schema should have the right context
               current_schema = current_schema_stack.last
               # The partial will handle its own properties
+            end
+          end
+        # Check if this line is a json property (general case)
+        elsif json_property_line?(line)
+          property_name = extract_property_name(line)
+          
+          if property_name
+            current_schema = current_schema_stack.last
+            
+            if current_schema && current_schema['properties']
+              property_schema = current_schema['properties'][property_name]
+              
+              if property_schema && !has_openapi_comment?(lines, index)
+                # Add comment before this line
+                comment = generate_property_comment(property_name, property_schema)
+                new_lines << (' ' * current_indent) + comment + "\n" if comment
+              end
+              
+              # Check if this line opens a block
+              if line.include?(' do')
+                in_block_stack << true
+                if property_schema
+                  # Push the nested schema onto the stack
+                  if property_schema['type'] == 'object' && property_schema['properties']
+                    current_schema_stack << property_schema
+                    indent_stack << current_indent
+                  elsif property_schema['type'] == 'array' && property_schema['items'] && property_schema['items']['properties']
+                    current_schema_stack << property_schema['items']
+                    indent_stack << current_indent
+                  end
+                end
+              elsif line.include?(' do |') && property_schema && property_schema['type'] == 'array'
+                # Array iteration block
+                in_block_stack << true
+                if property_schema['items'] && property_schema['items']['properties']
+                  current_schema_stack << property_schema['items']
+                  indent_stack << current_indent
+                end
+              end
             end
           end
         end

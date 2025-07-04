@@ -1,4 +1,4 @@
-class Auth::SessionsController < ApplicationController
+class Api::Auth::SessionsController < ApplicationController
   def login
     @auth_response = {
       success: true,

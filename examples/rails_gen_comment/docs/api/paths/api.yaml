@@ -1,8 +1,76 @@
 ---
-"/users/{user_id}/posts":
+"/api/dashboard":
+  get:
+    summary: Get dashboard data
+    operationId: api_dashboard_index
+    tags:
+    - Dashboard
+    description: Returns dashboard overview with stats and recent activities
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                total_users:
+                  type: integer
+                  description: Total number of users
+                total_posts:
+                  type: integer
+                  description: Total number of posts
+                active_users:
+                  type: integer
+                  description: Number of active users in last 30 days
+                recent_users:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        description: User ID
+                      name:
+                        type: string
+                        description: User name
+                      email:
+                        type: string
+                        description: User email
+                    required:
+                    - id
+                    - name
+                    - email
+                  description: List of recent users
+                recent_posts:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        description: Post ID
+                      title:
+                        type: string
+                        description: Post title
+                      created_at:
+                        type: string
+                        description: Post creation date
+                    required:
+                    - id
+                    - title
+                    - created_at
+                  description: List of recent posts
+              required:
+              - total_users
+              - total_posts
+              - active_users
+              - recent_users
+              - recent_posts
+"/api/users/{user_id}/posts":
   get:
     summary: List all posts
-    operationId: posts_index
+    operationId: api_posts_index
     tags:
     - Posts
     parameters:
@@ -59,7 +127,7 @@
                 - tags
   post:
     summary: Create new post
-    operationId: posts_create
+    operationId: api_posts_create
     tags:
     - Posts
     parameters:
@@ -89,10 +157,10 @@
               - message
               - post_id
               - created_at
-"/users/{user_id}/posts/{id}":
+"/api/users/{user_id}/posts/{id}":
   get:
     summary: Get post details
-    operationId: posts_show
+    operationId: api_posts_show
     tags:
     - Posts
     description: Returns detailed information about a specific post
@@ -117,32 +185,6 @@
               properties:
                 author:
                   type: object
-                  properties:
-                    id:
-                      type: integer
-                      description: User unique identifier
-                    name:
-                      type: string
-                      description: User full name
-                    email:
-                      type: string
-                      description: User email address
-                    status:
-                      type: string
-                      description: Current user status
-                      enum:
-                      - active
-                      - inactive
-                      - suspended
-                    created_at:
-                      type: string
-                      description: Account creation timestamp
-                  required:
-                  - id
-                  - name
-                  - email
-                  - status
-                  - created_at
                 tags:
                   type: array
                   items:
@@ -157,39 +199,16 @@
                 published_at:
                   type: string
                   description: Publication timestamp
-                id:
-                  type: integer
-                  description: Unique post identifier
-                title:
-                  type: string
-                  description: Post title
-                content:
-                  type: string
-                  description: Post content/body
-                published:
-                  type: boolean
-                  description: Whether the post is published
-                created_at:
-                  type: string
-                  description: Post creation timestamp in ISO 8601 format
-                updated_at:
-                  type: string
               required:
               - author
               - tags
               - comments_count
               - likes_count
               - published_at
-              - id
-              - title
-              - content
-              - published
-              - created_at
-              - updated_at
-"/users":
+"/api/users":
   get:
     summary: Index User
-    operationId: users_index
+    operationId: api_users_index
     tags:
     - Users
     responses:
@@ -201,36 +220,12 @@
               type: array
               items:
                 type: object
-                properties:
-                  id:
-                    type: integer
-                    description: User unique identifier
-                  name:
-                    type: string
-                    description: User full name
-                  email:
-                    type: string
-                    description: User email address
-                  status:
-                    type: string
-                    description: Current user status
-                    enum:
-                    - active
-                    - inactive
-                    - suspended
-                  created_at:
-                    type: string
-                    description: Account creation timestamp
-                required:
-                - id
-                - name
-                - email
-                - status
-                - created_at
-"/users/{id}":
+                properties: {}
+                required: []
+"/api/users/{id}":
   get:
     summary: Get user details
-    operationId: users_show
+    operationId: api_users_show
     tags:
     - Users
     description: Returns detailed information about a specific user
@@ -333,33 +328,149 @@
                   - account_type
                   - premium_features
                   - billing_info
-                id:
-                  type: integer
-                  description: User unique identifier
-                name:
-                  type: string
-                  description: User full name
-                email:
-                  type: string
-                  description: User email address
-                status:
-                  type: string
-                  description: Current user status
-                  enum:
-                  - active
-                  - inactive
-                  - suspended
-                created_at:
-                  type: string
-                  description: Account creation timestamp
               required:
               - role
               - admin_notes
               - profile
               - posts
               - metadata
-              - id
-              - name
-              - email
-              - status
-              - created_at
+"/api/posts/{post_id}/comments":
+  get:
+    summary: List comments
+    operationId: api_comments_index
+    tags:
+    - Comments
+    - Public
+    description: Returns all comments for a specific post
+    parameters:
+    - name: post_id
+      in: path
+      required: true
+      schema:
+        type: string
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: Unique comment identifier
+                  content:
+                    type: string
+                    description: Comment content
+                  author:
+                    type: string
+                    description: Comment author name
+                  created_at:
+                    type: string
+                    description: Comment creation timestamp
+                  likes:
+                    type: integer
+                    description: Number of likes on this comment
+                required:
+                - id
+                - content
+                - author
+                - created_at
+                - likes
+"/api/posts":
+  get:
+    summary: List all posts
+    operationId: api_posts_index
+    tags:
+    - Posts
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: Unique post identifier
+                  title:
+                    type: string
+                    description: Post title
+                  content:
+                    type: string
+                    description: Post content/body
+                  published:
+                    type: boolean
+                    description: Whether the post is published
+                  created_at:
+                    type: string
+                    description: Post creation timestamp in ISO 8601 format
+                  tags:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: integer
+                          description: Tag unique identifier
+                        color:
+                          type: string
+                          description: Tag color in hex format
+                      required:
+                      - name
+                      - color
+                required:
+                - id
+                - title
+                - content
+                - published
+                - created_at
+                - tags
+"/api/posts/{id}":
+  get:
+    summary: Get post details
+    operationId: api_posts_show
+    tags:
+    - Posts
+    description: Returns detailed information about a specific post
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                author:
+                  type: object
+                tags:
+                  type: array
+                  items:
+                    type: string
+                  description: Post tags for categorization
+                comments_count:
+                  type: integer
+                  description: Total number of comments
+                likes_count:
+                  type: integer
+                  description: Total number of likes
+                published_at:
+                  type: string
+                  description: Publication timestamp
+              required:
+              - author
+              - tags
+              - comments_count
+              - likes_count
+              - published_at
