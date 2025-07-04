@@ -1,5 +1,6 @@
 # @openapi_operation summary:"List comments" tags:[Comments,Public] description:"Returns all comments for a specific post" responseDescription:"Array of comment objects"
 
+# @openapi root:array items:object
 json.array! @comments do |comment|
   # @openapi id:integer required:true description:"Unique comment identifier"
   json.id comment[:id]

@@ -4,6 +4,7 @@
 json.partial! 'posts/post', post: @post
 
 # Author info using user partial
+# @openapi author:object
 json.author do
   json.partial! 'users/user', user: @post.author
 end

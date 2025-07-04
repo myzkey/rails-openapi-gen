@@ -48,7 +48,7 @@ bin/rails openapi:generate
 
 Import from existing OpenAPI spec to add comments:
 ```bash
-bin/rails runner "RailsOpenapiGen.import('docs/api/openapi.yaml')"
+bin/rails "openapi:import[docs/api/openapi.yaml]"
 ```
 
 Check for missing comments:

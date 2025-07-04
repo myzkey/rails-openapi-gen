@@ -14,9 +14,17 @@ namespace :openapi do
   end
 
   desc "Import OpenAPI specification and add comments to Jbuilder templates"
-  task import: :environment do |_task, args|
+  task :import, [:openapi_file] => :environment do |_task, args|
     require "rails_openapi_gen"
-    openapi_file = args.extras.first
+    
+    openapi_file = args[:openapi_file]
+    
+    if openapi_file.nil? || openapi_file.empty?
+      puts "Usage: bin/rails openapi:import[PATH_TO_OPENAPI_FILE]"
+      puts "Example: bin/rails openapi:import[docs/api/openapi.yaml]"
+      exit 1
+    end
+    
     RailsOpenapiGen.import(openapi_file)
   end
 end

@@ -6,6 +6,7 @@
     response_description:"Response description"
 =end
 
+# @openapi root:array items:object
 json.array! @posts do |post|
   # @openapi id:integer required:true description:"Unique post identifier"
   json.id post[:id]
@@ -22,6 +23,7 @@ json.array! @posts do |post|
   # @openapi created_at:string required:true description:"Post creation timestamp in ISO 8601 format"
   json.created_at post[:created_at].iso8601
 
+  # @openapi tags:array items:object
   json.tags @post[:tags] do |tag|
     # @openapi name:integer required:true description:"Tag unique identifier"
     json.name tag[:name]

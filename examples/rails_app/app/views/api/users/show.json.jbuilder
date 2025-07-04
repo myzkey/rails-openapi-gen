@@ -28,6 +28,7 @@ if @user.profile.present?
 end
 
 # Example of array with objects
+# @openapi posts:array items:object
 json.posts @user[:posts] || [] do |post|
   # @openapi id:integer description:"Post ID"
   json.id post[:id]
@@ -40,6 +41,7 @@ json.posts @user[:posts] || [] do |post|
 end
 
 # Example of metadata object
+# @openapi metadata:object
 json.metadata do
   # @openapi last_login:string required:true description:"Last login timestamp"
   json.last_login Time.current.iso8601
