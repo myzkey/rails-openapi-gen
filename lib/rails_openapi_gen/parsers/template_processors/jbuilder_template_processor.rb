@@ -66,18 +66,75 @@ module RailsOpenapiGen
           end
 
           def parse_render_options(hash_node)
+            render_options = extract_render_hash_options(hash_node)
+            
+            if render_options[:json]
+              @jbuilder_path = default_jbuilder_path
+            elsif render_options[:template]
+              template_path = render_options[:template]
+              formats = render_options[:formats] || :json
+              handlers = render_options[:handlers] || :jbuilder
+              
+              # Build full template path with format and handler
+              full_template_path = build_template_path(template_path, formats, handlers)
+              @jbuilder_path = Rails.root.join("app", "views", "#{full_template_path}")
+            end
+          end
+
+          private
+
+          def extract_render_hash_options(hash_node)
+            options = {}
+            
             hash_node.children.each do |pair|
               key_node, value_node = pair.children
               next unless key_node.type == :sym
-
-              case key_node.children.first
-              when :json
-                @jbuilder_path = default_jbuilder_path
-              when :template
-                template = value_node.children.first
-                @jbuilder_path = Rails.root.join("app", "views", template.gsub("/", File::SEPARATOR) + ".json.jbuilder")
-              end
+              
+              key = key_node.children.first
+              value = extract_node_value(value_node)
+              
+              options[key] = value
             end
+            
+            options
+          end
+
+          def extract_node_value(node)
+            case node.type
+            when :str, :sym
+              node.children.first
+            when :true
+              true
+            when :false
+              false
+            else
+              node.children.first
+            end
+          end
+
+          def build_template_path(template, formats, handlers)
+            # Handle different format specifications
+            format_str = case formats
+                        when Symbol
+                          formats.to_s
+                        when String
+                          formats
+                        else
+                          "json"
+                        end
+            
+            # Handle different handler specifications  
+            handler_str = case handlers
+                         when Symbol
+                           handlers.to_s
+                         when String
+                           handlers
+                         else
+                           "jbuilder"
+                         end
+            
+            # Build the path: template.format.handler
+            "#{template.gsub('/', File::SEPARATOR)}.#{format_str}.#{handler_str}"
           end
 
           def default_jbuilder_path

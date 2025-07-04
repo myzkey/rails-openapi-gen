@@ -19,6 +19,12 @@ Rails.application.routes.draw do
 
     resources :posts, only: [:index, :show] do
       resources :comments, only: [:index, :create]
+      
+      # Custom actions with explicit template rendering
+      collection do
+        get :featured  # Uses explicit template: "api/v1/posts/featured_list"
+        get :archive   # Uses shared template: "shared/post_list"
+      end
     end
 
     # Authentication routes

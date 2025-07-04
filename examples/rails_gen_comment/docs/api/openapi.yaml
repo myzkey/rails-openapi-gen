@@ -1049,3 +1049,219 @@ paths:
                 - email
                 - status
                 - created_at
+  "/api/auth/login":
+    post:
+      summary: User login
+      operationId: api_auth_login
+      tags:
+        - Authentication
+      description: Authenticate user with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: User email address
+                password:
+                  type: string
+                  description: User password
+              required:
+                - email
+                - password
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Login success status
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        description: User ID
+                      email:
+                        type: string
+                        format: email
+                        description: User email
+                      name:
+                        type: string
+                        description: User name
+                    required:
+                      - id
+                      - email
+                      - name
+                  token:
+                    type: string
+                    description: Authentication token
+                  expires_at:
+                    type: string
+                    format: date-time
+                    description: Token expiration time in ISO 8601 format
+                required:
+                  - success
+                  - user
+                  - token
+                  - expires_at
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - success
+                  - error
+  "/api/auth/register":
+    post:
+      summary: User registration
+      operationId: api_auth_register
+      tags:
+        - Authentication
+      description: Register a new user account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: User full name
+                email:
+                  type: string
+                  format: email
+                  description: User email address
+                password:
+                  type: string
+                  description: User password
+                password_confirmation:
+                  type: string
+                  description: Password confirmation
+              required:
+                - name
+                - email
+                - password
+                - password_confirmation
+      responses:
+        '201':
+          description: User successfully registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Registration success status
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        description: User ID
+                      email:
+                        type: string
+                        format: email
+                        description: User email
+                      name:
+                        type: string
+                        description: User name
+                    required:
+                      - id
+                      - email
+                      - name
+                  token:
+                    type: string
+                    description: Authentication token
+                  expires_at:
+                    type: string
+                    format: date-time
+                    description: Token expiration time in ISO 8601 format
+                required:
+                  - success
+                  - user
+                  - token
+                  - expires_at
+        '422':
+          description: Validation errors
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  errors:
+                    type: object
+                    description: Validation error details
+                required:
+                  - success
+                  - errors
+  "/api/auth/logout":
+    delete:
+      summary: User logout
+      operationId: api_auth_logout
+      tags:
+        - Authentication
+      description: Logout user and invalidate token
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successfully logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Logout success status
+                  message:
+                    type: string
+                    description: Success message
+                required:
+                  - success
+                  - message
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - success
+                  - error
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

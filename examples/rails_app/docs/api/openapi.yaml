@@ -390,6 +390,125 @@ paths:
                   - author
                   - created_at
                   - likes
+  "/api/posts/featured":
+    get:
+      summary: Get featured posts
+      operationId: api_posts_featured
+      tags:
+      - Posts
+      description: Returns a list of featured posts using explicit template rendering
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      description: Post ID
+                    title:
+                      type: string
+                      description: Post title
+                    content:
+                      type: string
+                      description: Post content
+                    published:
+                      type: boolean
+                      description: Whether the post is published
+                    featured:
+                      type: boolean
+                      description: Whether the post is featured
+                    created_at:
+                      type: string
+                      description: Post creation timestamp
+                    excerpt:
+                      type: string
+                      description: Post excerpt
+                  required:
+                  - id
+                  - title
+                  - content
+                  - published
+                  - featured
+                  - created_at
+                  - excerpt
+  "/api/posts/archive":
+    get:
+      summary: Get archived posts
+      operationId: api_posts_archive
+      tags:
+      - Posts
+      description: Returns archived posts using shared template rendering
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  posts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          description: Post ID
+                        title:
+                          type: string
+                          description: Post title
+                        content:
+                          type: string
+                          description: Post content
+                        published:
+                          type: boolean
+                          description: Whether the post is published
+                        archived:
+                          type: boolean
+                          description: Whether the post is archived
+                        created_at:
+                          type: string
+                          description: Post creation timestamp
+                        status:
+                          type: string
+                          description: Post status
+                          enum:
+                          - active
+                          - inactive
+                      required:
+                      - id
+                      - title
+                      - content
+                      - published
+                      - archived
+                      - created_at
+                      - status
+                    description: List of posts
+                  metadata:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                        description: Total number of posts
+                      fetched_at:
+                        type: string
+                        description: When the data was fetched
+                      template_used:
+                        type: string
+                        description: Template used for rendering
+                    required:
+                    - total
+                    - fetched_at
+                    - template_used
+                    description: Response metadata
+                required:
+                - posts
+                - metadata
   "/api/posts":
     get:
       summary: List all posts

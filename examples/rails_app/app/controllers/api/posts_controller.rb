@@ -43,4 +43,40 @@ class Api::PostsController < ApplicationController
     # POST endpoint - no view template needed for this example
     render json: { success: true, message: "Post created successfully" }
   end
+
+  # Example of explicit template rendering
+  def featured
+    @posts = [
+      { 
+        id: 1, 
+        title: "Featured Post 1", 
+        content: "This is a featured post", 
+        published: true,
+        featured: true,
+        created_at: Time.current
+      }
+    ]
+    
+    # Explicit render with template, formats, and handlers
+    render template: "api/v1/posts/featured_list",
+           formats: :json,
+           handlers: :jbuilder
+  end
+
+  # Example of shared template rendering
+  def archive
+    @posts = [
+      { 
+        id: 10, 
+        title: "Archived Post", 
+        content: "This is an archived post", 
+        published: false,
+        archived: true,
+        created_at: 1.month.ago
+      }
+    ]
+    
+    # Render shared template
+    render template: "shared/post_list"
+  end
 end

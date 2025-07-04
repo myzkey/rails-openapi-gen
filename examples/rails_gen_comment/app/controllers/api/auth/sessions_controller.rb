@@ -16,8 +16,7 @@ class Api::Auth::SessionsController < ApplicationController
     @user = {
       id: 1,
       email: "newuser@example.com", 
-      name: "New User",
-      created_at: Time.current
+      name: "New User"
     }
   end
 

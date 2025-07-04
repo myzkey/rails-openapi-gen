@@ -1,9 +1,17 @@
-json.id @user[:id]
+# @openapi_operation summary:"User registration" description:"Register a new user account" tags:[Authentication]
+json.success true
 
-json.email @user[:email]
+# @openapi user:object
+json.user do
+  # @openapi id:integer description:"User ID"
+  json.id @user[:id]
+  # @openapi email:string description:"User email" format:email
+  json.email @user[:email]
+  # @openapi name:string description:"User name"
+  json.name @user[:name]
+end
 
-json.name @user[:name]
-
-json.created_at @user[:created_at].iso8601
-
-json.message "User registered successfully"
+# @openapi token:string description:"Authentication token"
+json.token "jwt_token_here"
+# @openapi expires_at:string description:"Token expiration time in ISO 8601 format" format:date-time
+json.expires_at 24.hours.from_now.iso8601

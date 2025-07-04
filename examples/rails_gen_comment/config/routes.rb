@@ -23,9 +23,9 @@ Rails.application.routes.draw do
 
     # Authentication routes
     namespace :auth do
-      post :login
-      post :register  
-      delete :logout
+      post :login, to: 'sessions#login'
+      post :register, to: 'sessions#register'
+      delete :logout, to: 'sessions#logout'
     end
   end
 
