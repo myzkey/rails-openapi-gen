@@ -10,6 +10,9 @@ module RailsOpenapiGen
       OPENAPI_BODY_REGEX = /@openapi_body\s+(.+)$/
       OPENAPI_CONDITIONAL_REGEX = /@openapi\s+conditional:true\s*$/
 
+      # Parses OpenAPI comment text to extract attributes
+      # @param comment_text [String] Comment text to parse
+      # @return [Hash, nil] Parsed attributes or nil if not an OpenAPI comment
       def parse(comment_text)
         if comment_text.match?(OPENAPI_CONDITIONAL_REGEX)
           return { conditional: true }
@@ -35,6 +38,9 @@ module RailsOpenapiGen
 
       private
 
+      # Parses field attributes from OpenAPI comment content
+      # @param content [String] Content string with attributes
+      # @return [Hash] Parsed attributes hash
       def parse_attributes(content)
         attributes = {}
         
@@ -66,6 +72,9 @@ module RailsOpenapiGen
         attributes
       end
 
+      # Parses operation attributes from OpenAPI operation comment
+      # @param content [String] Content string with operation attributes
+      # @return [Hash] Parsed operation attributes
       def parse_operation_attributes(content)
         attributes = {}
         
@@ -93,6 +102,9 @@ module RailsOpenapiGen
         attributes
       end
 
+      # Cleans and normalizes attribute values
+      # @param value [String] Raw value string
+      # @return [String] Cleaned value
       def clean_value(value)
         value = value.strip
         
@@ -105,6 +117,9 @@ module RailsOpenapiGen
         end
       end
 
+      # Parses enum array values from string representation
+      # @param value [String] Enum string like "[active,inactive]"
+      # @return [Array<String>, String] Parsed array or original value
       def parse_enum(value)
         return value unless value.is_a?(String) && value.start_with?('[') && value.end_with?(']')
         
@@ -122,6 +137,9 @@ module RailsOpenapiGen
         items
       end
 
+      # Parses parameter attributes from OpenAPI parameter comment
+      # @param content [String] Content string with parameter attributes
+      # @return [Hash] Parsed parameter attributes
       def parse_parameter_attributes(content)
         attributes = {}
         

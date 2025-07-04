@@ -7,10 +7,14 @@ module RailsOpenapiGen
     class ControllerParser
       attr_reader :route
 
+      # Initializes controller parser with route information
+      # @param route [Hash] Route hash containing controller and action info
       def initialize(route)
         @route = route
       end
 
+      # Parses controller to find action method and Jbuilder template
+      # @return [Hash] Controller info including paths and parameters
       def parse
         controller_path = find_controller_file
         return {} unless controller_path
@@ -34,6 +38,8 @@ module RailsOpenapiGen
 
       private
 
+      # Finds the controller file path based on route information
+      # @return [String, nil] Path to controller file or nil if not found
       def find_controller_file
         controller_name = "#{route[:controller]}_controller"
         possible_paths = [
@@ -50,6 +56,9 @@ module RailsOpenapiGen
         possible_paths.find { |path| File.exist?(path) }
       end
 
+      # Finds action method node in the AST
+      # @param ast [Parser::AST::Node] Controller AST
+      # @return [Parser::AST::Node, nil] Action method node or nil
       def find_action_method(ast)
         return nil unless ast
 
@@ -58,6 +67,9 @@ module RailsOpenapiGen
         processor.action_node
       end
 
+      # Extracts Jbuilder template path from action method
+      # @param action_node [Parser::AST::Node] Action method node
+      # @return [String, nil] Path to Jbuilder template or nil
       def extract_jbuilder_path(action_node)
         return nil unless action_node
 
@@ -73,12 +85,18 @@ module RailsOpenapiGen
         jbuilder_path
       end
       
+      # Finds default Jbuilder template following Rails conventions
+      # @return [String, nil] Path to default template or nil
       def find_default_jbuilder_template
         # Rails convention: app/views/{controller}/{action}.json.jbuilder
         template_path = Rails.root.join("app", "views", route[:controller], "#{route[:action]}.json.jbuilder")
         File.exist?(template_path) ? template_path.to_s : nil
       end
 
+      # Extracts parameter definitions from comments above action method
+      # @param content [String] Controller file content
+      # @param action_node [Parser::AST::Node] Action method node
+      # @return [Hash] Parameters hash with path, query, and body parameters
       def extract_parameters_from_comments(content, action_node)
         return {} unless action_node
 
@@ -121,11 +139,16 @@ module RailsOpenapiGen
       class ActionMethodProcessor < Parser::AST::Processor
         attr_reader :action_node
 
+        # Initializes processor to find specific action method
+        # @param action_name [String, Symbol] Name of action to find
         def initialize(action_name)
           @action_name = action_name.to_sym
           @action_node = nil
         end
 
+        # Processes method definition nodes
+        # @param node [Parser::AST::Node] Method definition node
+        # @return [void]
         def on_def(node)
           method_name = node.children[0]
           @action_node = node if method_name == @action_name
@@ -136,12 +159,18 @@ module RailsOpenapiGen
       class JbuilderPathProcessor < Parser::AST::Processor
         attr_reader :jbuilder_path
 
+        # Initializes processor to extract Jbuilder path from render calls
+        # @param controller [String] Controller name
+        # @param action [String] Action name
         def initialize(controller, action)
           @controller = controller
           @action = action
           @jbuilder_path = nil
         end
 
+        # Processes method call nodes to find render calls
+        # @param node [Parser::AST::Node] Method call node
+        # @return [void]
         def on_send(node)
           if render_call?(node)
             extract_render_target(node)
@@ -151,11 +180,17 @@ module RailsOpenapiGen
 
         private
 
+        # Checks if node is a render method call
+        # @param node [Parser::AST::Node] Node to check
+        # @return [Boolean] True if render call
         def render_call?(node)
           receiver, method_name = node.children[0..1]
           receiver.nil? && method_name == :render
         end
 
+        # Extracts render target from render method call
+        # @param node [Parser::AST::Node] Render call node
+        # @return [void]
         def extract_render_target(node)
           args = node.children[2..-1]
           
@@ -169,6 +204,9 @@ module RailsOpenapiGen
           end
         end
 
+        # Parses render options hash to find template
+        # @param hash_node [Parser::AST::Node] Hash node with render options
+        # @return [void]
         def parse_render_options(hash_node)
           hash_node.children.each do |pair|
             key_node, value_node = pair.children
@@ -184,6 +222,8 @@ module RailsOpenapiGen
           end
         end
 
+        # Returns default Jbuilder template path
+        # @return [Pathname] Default template path
         def default_jbuilder_path
           Rails.root.join("app", "views", @controller, "#{@action}.json.jbuilder")
         end

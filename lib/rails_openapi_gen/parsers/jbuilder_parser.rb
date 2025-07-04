@@ -8,6 +8,8 @@ module RailsOpenapiGen
     class JbuilderParser
       attr_reader :jbuilder_path
 
+      # Initializes Jbuilder parser with template path
+      # @param jbuilder_path [String] Path to Jbuilder template file
       def initialize(jbuilder_path)
         @jbuilder_path = jbuilder_path
         @properties = []
@@ -15,6 +17,8 @@ module RailsOpenapiGen
         @parsed_files = Set.new
       end
 
+      # Parses Jbuilder template to extract properties and operation info
+      # @return [Hash] Hash with properties array and operation info
       def parse
         return { properties: @properties, operation: @operation_info } unless File.exist?(jbuilder_path)
         
@@ -24,6 +28,9 @@ module RailsOpenapiGen
 
       private
 
+      # Recursively parses a Jbuilder file and its partials
+      # @param file_path [String] Path to file to parse
+      # @return [void]
       def parse_file(file_path)
         return if @parsed_files.include?(file_path)
         @parsed_files << file_path
@@ -49,6 +56,9 @@ module RailsOpenapiGen
         end
       end
 
+      # Extracts block comments (=begin/=end) from file content
+      # @param content [String] File content
+      # @return [Array<OpenStruct>] Array of mock comment objects
       def extract_block_comments(content)
         block_comments = []
         lines = content.lines
@@ -85,6 +95,9 @@ module RailsOpenapiGen
       class JbuilderProcessor < Parser::AST::Processor
         attr_reader :properties, :partials, :operation_info
 
+        # Initializes AST processor for Jbuilder parsing
+        # @param file_path [String] Path to current file
+        # @param comments [Array] Array of comment objects
         def initialize(file_path, comments)
           @file_path = file_path
           @comments = comments
@@ -98,6 +111,9 @@ module RailsOpenapiGen
           @conditional_stack = []
         end
 
+        # Processes method call nodes to extract JSON properties
+        # @param node [Parser::AST::Node] Method call node
+        # @return [void]
         def on_send(node)
           receiver, method_name, *args = node.children
           
@@ -117,6 +133,9 @@ module RailsOpenapiGen
           super
         end
         
+        # Processes block nodes for nested objects and array iterations
+        # @param node [Parser::AST::Node] Block node
+        # @return [void]
         def on_block(node)
           send_node, args_node, body = node.children
           receiver, method_name, *send_args = send_node.children
@@ -140,6 +159,9 @@ module RailsOpenapiGen
           end
         end
 
+        # Processes if statements to track conditional properties
+        # @param node [Parser::AST::Node] If statement node
+        # @return [void]
         def on_if(node)
           # Check if this if statement has a conditional comment
           comment_data = find_comment_for_node(node)
@@ -155,18 +177,35 @@ module RailsOpenapiGen
 
         private
 
+        # Checks if node represents a json property call
+        # @param receiver [Parser::AST::Node] Receiver node
+        # @param method_name [Symbol] Method name
+        # @return [Boolean] True if json property call
         def json_property?(receiver, method_name)
           receiver && receiver.type == :send && receiver.children[1] == :json
         end
 
+        # Checks if node represents a partial render call
+        # @param receiver [Parser::AST::Node] Receiver node
+        # @param method_name [Symbol] Method name
+        # @return [Boolean] True if partial call
         def partial_call?(receiver, method_name)
           method_name == :partial! && (!receiver || receiver.type == :send && receiver.children[1] == :json)
         end
 
+        # Checks if node represents a json.array! call
+        # @param receiver [Parser::AST::Node] Receiver node
+        # @param method_name [Symbol] Method name
+        # @return [Boolean] True if array call
         def array_call?(receiver, method_name)
           method_name == :array! && receiver && receiver.type == :send && receiver.children[1] == :json
         end
 
+        # Processes a simple JSON property assignment
+        # @param node [Parser::AST::Node] Property node
+        # @param property_name [String] Name of the property
+        # @param args [Array] Method arguments
+        # @return [void]
         def process_json_property(node, property_name, args)
           comment_data = find_comment_for_node(node)
           
@@ -178,6 +217,9 @@ module RailsOpenapiGen
           end
         end
 
+        # Processes json.array! calls to create array schema
+        # @param node [Parser::AST::Node] Array call node
+        # @return [void]
         def process_array_property(node)
           comment_data = find_comment_for_node(node)
           
@@ -191,6 +233,10 @@ module RailsOpenapiGen
           @properties << property_info
         end
         
+        # Processes json.array! with partial rendering
+        # @param node [Parser::AST::Node] Array call node
+        # @param args [Array] Array call arguments
+        # @return [void]
         def process_array_with_partial(node, args)
           # Extract partial path from the hash arguments
           partial_path = nil
@@ -235,6 +281,9 @@ module RailsOpenapiGen
           end
         end
         
+        # Checks if hash node contains a :partial key
+        # @param hash_node [Parser::AST::Node] Hash node to check
+        # @return [Boolean] True if partial key exists
         def has_partial_key?(hash_node)
           hash_node.children.any? do |pair|
             if pair.type == :pair
@@ -244,6 +293,10 @@ module RailsOpenapiGen
           end
         end
 
+        # Processes array iteration blocks (e.g., json.tags @tags do |tag|)
+        # @param node [Parser::AST::Node] Block node
+        # @param property_name [String] Array property name
+        # @return [void]
         def process_array_iteration_block(node, property_name)
           comment_data = find_comment_for_node(node)
           
@@ -287,6 +340,10 @@ module RailsOpenapiGen
           @properties << property_info
         end
         
+        # Processes nested object blocks (e.g., json.profile do)
+        # @param node [Parser::AST::Node] Block node
+        # @param property_name [String] Object property name
+        # @return [void]
         def process_nested_object_block(node, property_name)
           comment_data = find_comment_for_node(node)
           
@@ -340,6 +397,11 @@ module RailsOpenapiGen
           @properties << property_info
         end
 
+        # Processes a simple property assignment
+        # @param node [Parser::AST::Node] Property node
+        # @param property_name [String] Name of the property
+        # @param comment_data [Hash, nil] Parsed comment data
+        # @return [void]
         def process_simple_property(node, property_name, comment_data)
           property_info = {
             property: property_name,
@@ -359,6 +421,9 @@ module RailsOpenapiGen
         end
 
 
+        # Processes partial render calls to track dependencies
+        # @param args [Array] Partial call arguments
+        # @return [void]
         def process_partial(args)
           return if args.empty?
           
@@ -370,6 +435,9 @@ module RailsOpenapiGen
           end
         end
 
+        # Finds OpenAPI comment for a given AST node
+        # @param node [Parser::AST::Node] Node to find comment for
+        # @return [Hash, nil] Parsed comment data or nil
         def find_comment_for_node(node)
           line_number = node.location.line
           
@@ -390,6 +458,9 @@ module RailsOpenapiGen
           end
         end
 
+        # Resolves partial name to full file path
+        # @param partial_name [String] Partial name (e.g., "users/user")
+        # @return [String, nil] Full path to partial file or nil
         def resolve_partial_path(partial_name)
           dir = File.dirname(@file_path)
           
@@ -412,6 +483,9 @@ module RailsOpenapiGen
           end
         end
         
+        # Parses a partial file to extract properties for nested objects
+        # @param partial_path [String] Path to partial file
+        # @return [Array<Hash>] Array of property definitions
         def parse_partial_for_nested_object(partial_path)
           # Create a new parser to parse the partial independently
           partial_parser = JbuilderParser.new(partial_path)

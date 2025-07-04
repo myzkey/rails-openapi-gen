@@ -5,6 +5,8 @@ require "set"
 
 module RailsOpenapiGen
   class Importer
+    # Initializes importer with OpenAPI specification file
+    # @param openapi_file [String, nil] Path to OpenAPI spec file (defaults to configured output)
     def initialize(openapi_file = nil)
       @openapi_file = openapi_file || File.join(RailsOpenapiGen.configuration.output_directory, 
                                                RailsOpenapiGen.configuration.output_filename)
@@ -12,6 +14,8 @@ module RailsOpenapiGen
       @processed_files = Set.new
     end
 
+    # Runs the import process to generate @openapi comments in Jbuilder files
+    # @return [void]
     def run
       unless File.exist?(@openapi_file)
         puts "❌ OpenAPI file not found: #{@openapi_file}"
@@ -83,6 +87,11 @@ module RailsOpenapiGen
 
     private
 
+    # Finds Rails route matching OpenAPI path and method
+    # @param openapi_path [String] OpenAPI path format (e.g., "/users/{id}")
+    # @param method [String] HTTP method
+    # @param routes [Array<Hash>] Array of Rails routes
+    # @return [Hash, nil] Matching route or nil
     def find_matching_route(openapi_path, method, routes)
       # Convert OpenAPI path format {id} to Rails format :id
       rails_path = openapi_path.gsub(/\{(\w+)\}/, ':\1')
@@ -92,11 +101,17 @@ module RailsOpenapiGen
       end
     end
 
+    # Normalizes path by removing trailing slashes
+    # @param path [String] Path to normalize
+    # @return [String] Normalized path
     def normalize_path(path)
       # Remove trailing slashes and normalize
       path.gsub(/\/$/, '')
     end
     
+    # Extracts resource name from OpenAPI path
+    # @param path [String] OpenAPI path (e.g., "/users/{id}/posts")
+    # @return [String, nil] Singular resource name or nil
     def extract_resource_name_from_path(path)
       # Extract the resource name from OpenAPI path
       # Examples:
@@ -115,6 +130,10 @@ module RailsOpenapiGen
       resource_segment&.singularize
     end
     
+    # Collects schemas that might be used in partials
+    # @param properties [Hash] Properties hash from schema
+    # @param parent_key [String, nil] Parent property key for nested objects
+    # @return [void]
     def collect_partial_schemas(properties, parent_key = nil)
       # Collect schemas that might be used in partials
       properties.each do |key, schema|
@@ -138,6 +157,8 @@ module RailsOpenapiGen
       end
     end
     
+    # Processes partial files to add OpenAPI comments
+    # @return [void]
     def process_partial_files
       # Find and process partial files
       Dir.glob(Rails.root.join('app/views/**/_*.json.jbuilder')).each do |partial_path|
@@ -157,6 +178,9 @@ module RailsOpenapiGen
       end
     end
     
+    # Finds appropriate schema for a partial template
+    # @param partial_name [String] Name of the partial (e.g., "user")
+    # @return [Hash, nil] Schema for the partial or nil
     def find_schema_for_partial(partial_name)
       # Try to find a schema that matches the partial name
       # Look for singular and plural forms
@@ -175,6 +199,9 @@ module RailsOpenapiGen
       find_schema_by_properties(partial_name)
     end
     
+    # Finds schema with common properties for partial
+    # @param partial_name [String] Name of the partial
+    # @return [Hash, nil] Schema with common properties or nil
     def find_common_properties_schema(partial_name)
       # Find schemas that might represent this partial
       # by looking for schemas with properties that match the partial content
@@ -214,6 +241,9 @@ module RailsOpenapiGen
       { 'properties' => best_match[:properties] }
     end
     
+    # Extracts common properties from multiple schemas
+    # @param candidate_schemas [Array<Hash>] Array of candidate schemas
+    # @return [Hash] Schema with common properties
     def extract_common_properties(candidate_schemas)
       # Find properties that appear in all candidate schemas with the same type
       common_props = {}
@@ -240,6 +270,9 @@ module RailsOpenapiGen
       common_props
     end
     
+    # Finds schema by matching property names in partial
+    # @param partial_name [String] Name of the partial
+    # @return [Hash, nil] Matching schema or nil
     def find_schema_by_properties(partial_name)
       # Try to match by analyzing the partial content
       # This is a more complex matching strategy
@@ -268,6 +301,10 @@ module RailsOpenapiGen
       best_match
     end
     
+    # Adds OpenAPI comments to a partial file
+    # @param partial_path [String] Path to partial file
+    # @param schema [Hash] Schema to use for comments
+    # @return [void]
     def add_comments_to_partial(partial_path, schema)
       return false unless File.exist?(partial_path)
       
@@ -286,6 +323,11 @@ module RailsOpenapiGen
       true
     end
 
+    # Adds OpenAPI comments to Jbuilder template
+    # @param controller_info [Hash] Controller information including jbuilder_path
+    # @param operation [Hash] OpenAPI operation data
+    # @param route [Hash] Route information
+    # @return [Boolean] True if file was updated
     def add_comments_to_jbuilder(controller_info, operation, route)
       jbuilder_path = controller_info[:jbuilder_path]
       return false unless File.exist?(jbuilder_path)
@@ -313,6 +355,9 @@ module RailsOpenapiGen
       true
     end
 
+    # Extracts response schema from OpenAPI operation
+    # @param operation [Hash] OpenAPI operation data
+    # @return [Hash, nil] Response schema or nil
     def extract_response_schema(operation)
       # Look for 200 response first, then any other successful response
       responses = operation['responses'] || {}
@@ -325,6 +370,13 @@ module RailsOpenapiGen
       json_content['schema']
     end
 
+    # Generates Jbuilder content with OpenAPI comments
+    # @param content [String] Original file content
+    # @param properties [Array<Hash>] Parsed properties from Jbuilder
+    # @param response_schema [Hash] Response schema from OpenAPI
+    # @param operation [Hash, nil] OpenAPI operation data
+    # @param route [Hash, nil] Route information
+    # @return [String] Updated content with comments
     def generate_commented_jbuilder(content, properties, response_schema, operation, route)
       lines = content.lines
       new_lines = []
@@ -483,6 +535,10 @@ module RailsOpenapiGen
       new_lines.join
     end
 
+    # Checks if operation comment should be added
+    # @param content [String] File content
+    # @param operation [Hash, nil] OpenAPI operation data
+    # @return [Boolean] True if operation comment should be added
     def should_add_operation_comment(content, operation)
       # Check if operation comment already exists
       return false unless operation
@@ -490,6 +546,9 @@ module RailsOpenapiGen
         (operation['summary'] || operation['description'] || operation['tags'])
     end
 
+    # Generates operation comment from OpenAPI data
+    # @param operation [Hash] OpenAPI operation data
+    # @return [String] Operation comment string
     def generate_operation_comment(operation)
       parts = []
       parts << "summary:\"#{operation['summary']}\"" if operation['summary']
@@ -505,15 +564,25 @@ module RailsOpenapiGen
       "# @openapi_operation #{parts.join(' ')}"
     end
 
+    # Checks if line contains a JSON property assignment
+    # @param line [String] Line to check
+    # @return [Boolean] True if JSON property line
     def json_property_line?(line)
       line.strip.match?(/^json\.\w+/)
     end
 
+    # Extracts property name from JSON assignment line
+    # @param line [String] Line containing JSON property
+    # @return [String, nil] Property name or nil
     def extract_property_name(line)
       match = line.strip.match(/^json\.(\w+)/)
       match ? match[1] : nil
     end
 
+    # Checks if line already has an OpenAPI comment
+    # @param lines [Array<String>] All lines in the file
+    # @param current_index [Integer] Current line index
+    # @return [Boolean] True if OpenAPI comment exists
     def has_openapi_comment?(lines, current_index)
       # Check the previous line for @openapi comment
       return false if current_index == 0
@@ -522,6 +591,10 @@ module RailsOpenapiGen
       prev_line.include?('@openapi')
     end
 
+    # Generates property comment from schema
+    # @param property_name [String] Name of the property
+    # @param property_schema [Hash] Property schema from OpenAPI
+    # @return [String] Generated comment string
     def generate_property_comment(property_name, property_schema)
       return nil unless property_schema
       

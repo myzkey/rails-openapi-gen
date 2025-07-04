@@ -3,6 +3,8 @@
 module RailsOpenapiGen
   module Parsers
     class RoutesParser
+      # Parses Rails application routes to extract route information
+      # @return [Array<Hash>] Array of route hashes with method, path, controller, action, and name
       def parse
         routes = []
         

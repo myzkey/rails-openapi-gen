@@ -4,6 +4,7 @@ module RailsOpenapiGen
   class Configuration
     attr_accessor :openapi_version, :info, :servers, :route_patterns, :output
 
+    # Initializes configuration with default values
     def initialize
       @openapi_version = "3.0.0"
       @info = {
@@ -28,6 +29,9 @@ module RailsOpenapiGen
       }
     end
 
+    # Loads configuration from Ruby file
+    # @param file_path [String, nil] Path to configuration file (defaults to config/openapi.rb or config/initializers/openapi.rb)
+    # @return [void]
     def load_from_file(file_path = nil)
       if file_path
         return unless File.exist?(file_path)
@@ -45,6 +49,8 @@ module RailsOpenapiGen
       load_ruby_config(file_path)
     end
 
+    # Returns the full path to the output directory
+    # @return [String] Full output directory path
     def output_directory
       if @output[:directory].start_with?('/')
         @output[:directory]
@@ -53,18 +59,28 @@ module RailsOpenapiGen
       end
     end
 
+    # Returns the output filename
+    # @return [String] Output filename
     def output_filename
       @output[:filename]
     end
 
+    # Checks if output should be split into multiple files
+    # @return [Boolean] True if files should be split
     def split_files?
       @output[:split_files]
     end
 
+    # Updates output configuration
+    # @param output_config [Hash] Output configuration hash
+    # @return [void]
     def update_output_config(output_config)
       load_output_config(output_config)
     end
 
+    # Checks if a route path should be included in the OpenAPI spec
+    # @param path [String] Route path to check
+    # @return [Boolean] True if route should be included
     def route_included?(path)
       # Check if path matches any include pattern
       included = @route_patterns[:include].any? { |pattern| path.match?(pattern) }
@@ -77,12 +93,17 @@ module RailsOpenapiGen
 
     private
 
+    # Loads Ruby configuration file
+    # @param file_path [String] Path to configuration file
+    # @return [void]
     def load_ruby_config(file_path)
       # Load Ruby configuration file
       # The file should call RailsOpenapiGen.configure block
       load file_path
     end
 
+    # Returns default application name
+    # @return [String] Default app name
     def default_app_name
       if defined?(Rails) && Rails.application
         Rails.application.class.respond_to?(:module_parent_name) ? 
@@ -93,12 +114,18 @@ module RailsOpenapiGen
       end
     end
 
+    # Converts hash keys to symbols
+    # @param hash [Hash] Hash to convert
+    # @return [Hash] Hash with symbolized keys
     def symbolize_keys(hash)
       return hash unless hash.is_a?(Hash)
       hash.transform_keys(&:to_sym)
     end
 
 
+    # Loads output configuration settings
+    # @param output_config [Hash] Output configuration hash
+    # @return [void]
     def load_output_config(output_config)
       output_settings = symbolize_keys(output_config)
       
@@ -111,14 +138,21 @@ module RailsOpenapiGen
   class << self
     attr_writer :configuration
 
+    # Returns the configuration instance
+    # @return [Configuration] Configuration instance
     def configuration
       @configuration ||= Configuration.new
     end
 
+    # Configures the gem via block
+    # @yield [Configuration] Configuration instance
+    # @return [void]
     def configure
       yield(configuration)
     end
 
+    # Resets configuration to defaults
+    # @return [void]
     def reset_configuration!
       @configuration = Configuration.new
     end

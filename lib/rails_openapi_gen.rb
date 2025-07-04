@@ -27,20 +27,29 @@ module RailsOpenapiGen
   class Error < StandardError; end
 
   class << self
+    # Generates OpenAPI specification from Rails application
+    # @return [void]
     def generate
       Generator.new.run
     end
 
+    # Checks for missing OpenAPI comments and uncommitted changes
+    # @return [void]
     def check
       Checker.new.run
     end
 
+    # Imports OpenAPI specification and generates @openapi comments in Jbuilder files
+    # @param openapi_file [String, nil] Path to OpenAPI specification file (defaults to openapi/openapi.yaml)
+    # @return [void]
     def import(openapi_file = nil)
       Importer.new(openapi_file).run
     end
   end
 
   class Generator
+    # Runs the OpenAPI generation process
+    # @return [void]
     def run
       # Load configuration
       RailsOpenapiGen.configuration.load_from_file
@@ -70,6 +79,9 @@ module RailsOpenapiGen
 
     private
 
+    # Builds schema from parsed AST nodes
+    # @param ast [Array<Hash>] Array of parsed AST nodes
+    # @return [Hash] OpenAPI schema definition
     def build_schema(ast)
       # Check if this is an array response (json.array!)
       if ast.any? { |node| node[:is_array_root] }
@@ -97,6 +109,9 @@ module RailsOpenapiGen
       schema
     end
 
+    # Builds array schema from AST nodes containing json.array!
+    # @param ast [Array<Hash>] Array of parsed AST nodes
+    # @return [Hash] OpenAPI array schema definition
     def build_array_schema(ast)
       # For json.array! responses, return array schema
       item_properties = {}
@@ -143,6 +158,9 @@ module RailsOpenapiGen
       }
     end
 
+    # Builds property schema from a single AST node
+    # @param node [Hash] Parsed AST node containing property information
+    # @return [Hash] OpenAPI property schema
     def build_property_schema(node)
       comment_data = node[:comment_data] || {}
       property_schema = {}
@@ -204,6 +222,9 @@ module RailsOpenapiGen
       property_schema
     end
     
+    # Builds schema for nested object properties
+    # @param nested_properties [Array<Hash>] Array of nested property nodes
+    # @return [Hash] Schema with properties and required fields
     def build_nested_object_schema(nested_properties)
       schema = { properties: {}, required: [] }
       
@@ -223,6 +244,8 @@ module RailsOpenapiGen
   end
 
   class Checker
+    # Runs checks for missing comments and uncommitted changes
+    # @return [void]
     def run
       system("bin/rails openapi:generate")
       
