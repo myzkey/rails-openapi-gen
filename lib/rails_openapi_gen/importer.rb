@@ -449,21 +449,21 @@ module RailsOpenapiGen
             
             # Look for this property in current schema
             current_schema = current_schema_stack.last
-            if current_schema && current_schema['properties'] && current_schema['properties'][property_name]
-              property_schema = current_schema['properties'][property_name]
+            if current_schema && current_schema['properties']
+              property_schema = find_property_in_schema(current_schema['properties'], property_name)
               
               # Add comment for the array property itself if needed
-              if !has_openapi_comment?(lines, index)
+              if property_schema && !has_openapi_comment?(lines, index)
                 comment = generate_property_comment(property_name, property_schema)
                 new_lines << (' ' * current_indent) + comment + "\n" if comment
               end
               
               # If it's an array with items, push the items schema
-              if property_schema['type'] == 'array' && property_schema['items'] && property_schema['items']['properties']
+              if property_schema && property_schema['type'] == 'array' && property_schema['items'] && property_schema['items']['properties']
                 current_schema_stack << property_schema['items']
                 indent_stack << current_indent
                 in_block_stack << true
-              elsif property_schema['type'] == 'array' && property_schema['items']
+              elif property_schema && property_schema['type'] == 'array' && property_schema['items']
                 # Try to find schema by item name
                 item_schema = @partial_schemas[item_name.singularize] || @partial_schemas[item_name]
                 if item_schema
@@ -496,7 +496,7 @@ module RailsOpenapiGen
             current_schema = current_schema_stack.last
             
             if current_schema && current_schema['properties']
-              property_schema = current_schema['properties'][property_name]
+              property_schema = find_property_in_schema(current_schema['properties'], property_name)
               
               if property_schema && !has_openapi_comment?(lines, index)
                 # Add comment before this line
@@ -589,6 +589,14 @@ module RailsOpenapiGen
       
       prev_line = lines[current_index - 1].strip
       prev_line.include?('@openapi')
+    end
+
+    # Finds property in schema using exact match only
+    # @param properties [Hash] Properties hash from schema
+    # @param property_name [String] Property name from jbuilder
+    # @return [Hash, nil] Property schema or nil
+    def find_property_in_schema(properties, property_name)
+      properties[property_name]
     end
 
     # Generates property comment from schema
