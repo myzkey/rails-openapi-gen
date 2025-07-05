@@ -29,24 +29,13 @@ module RailsOpenapiGen
       }
     end
 
-    # Loads configuration from Ruby file
+    # TODO: Loads configuration from Ruby file
     # @param file_path [String, nil] Path to configuration file (defaults to config/openapi.rb or config/initializers/openapi.rb)
     # @return [void]
     def load_from_file(file_path = nil)
-      if file_path
-        return unless File.exist?(file_path)
-      else
-        # Try different config file paths in order of preference
-        config_paths = [
-          Rails.root.join("config", "openapi.rb"),
-          Rails.root.join("config", "initializers", "openapi.rb")
-        ]
-        
-        file_path = config_paths.find { |path| File.exist?(path) }
-        return unless file_path
-      end
-
-      load_ruby_config(file_path)
+      # TODO: Implement configuration loading from file
+      # This method should load configuration from Ruby files and apply it to the instance
+      return
     end
 
     # Returns the full path to the output directory
@@ -100,6 +89,14 @@ module RailsOpenapiGen
       # Load Ruby configuration file
       # The file should call RailsOpenapiGen.configure block
       load file_path
+      
+      # Copy configuration from global singleton to this instance
+      global_config = RailsOpenapiGen.configuration
+      @openapi_version = global_config.openapi_version
+      @info = global_config.info.dup
+      @servers = global_config.servers.dup
+      @route_patterns = global_config.route_patterns.dup
+      @output = global_config.output.dup
     end
 
     # Returns default application name
