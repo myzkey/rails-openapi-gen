@@ -6,29 +6,37 @@ RSpec.describe RailsOpenapiGen::Generators::YamlGenerator do
   let(:mock_schemas) do
     {
       { path: "/users", method: "GET", controller: "users", action: "index" } => {
-        "type" => "object",
-        "properties" => {
-          "users" => {
-            "type" => "array",
-            "items" => {
-              "type" => "object",
-              "properties" => {
-                "id" => { "type" => "integer", "description" => "User ID" },
-                "name" => { "type" => "string", "description" => "User name" }
-              },
-              "required" => ["id", "name"]
+        schema: {
+          "type" => "object",
+          "properties" => {
+            "users" => {
+              "type" => "array",
+              "items" => {
+                "type" => "object",
+                "properties" => {
+                  "id" => { "type" => "integer", "description" => "User ID" },
+                  "name" => { "type" => "string", "description" => "User name" }
+                },
+                "required" => ["id", "name"]
+              }
             }
           }
-        }
+        },
+        parameters: {},
+        operation: {}
       },
       { path: "/users/:id", method: "GET", controller: "users", action: "show" } => {
-        "type" => "object",
-        "properties" => {
-          "id" => { "type" => "integer", "description" => "User ID" },
-          "name" => { "type" => "string", "description" => "User name" },
-          "email" => { "type" => "string", "description" => "User email" }
+        schema: {
+          "type" => "object",
+          "properties" => {
+            "id" => { "type" => "integer", "description" => "User ID" },
+            "name" => { "type" => "string", "description" => "User name" },
+            "email" => { "type" => "string", "description" => "User email" }
+          },
+          "required" => ["id", "name"]
         },
-        "required" => ["id", "name"]
+        parameters: {},
+        operation: {}
       }
     }
   end

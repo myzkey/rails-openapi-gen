@@ -101,7 +101,7 @@ module RailsOpenapiGen
         
         schema["properties"][property] = property_schema
         # Don't mark conditional properties as required, even if they have required:true
-        if comment_data[:required] != "false" && !node[:is_conditional]
+        if comment_data[:required] == "true" && !node[:is_conditional]
           schema["required"] << property
         end
       end
@@ -128,7 +128,7 @@ module RailsOpenapiGen
           
           property_schema = build_property_schema(node)
           item_properties[property] = property_schema
-          if comment_data[:required] != "false" && !node[:is_conditional]
+          if comment_data[:required] == "true" && !node[:is_conditional]
             required_fields << property
           end
         end
@@ -142,7 +142,7 @@ module RailsOpenapiGen
           
           property_schema = build_property_schema(node)
           item_properties[property] = property_schema
-          if comment_data[:required] != "false" && !node[:is_conditional]
+          if comment_data[:required] == "true" && !node[:is_conditional]
             required_fields << property
           end
         end
@@ -172,8 +172,8 @@ module RailsOpenapiGen
         # Build nested properties if they exist
         if node[:nested_properties] && !node[:nested_properties].empty?
           nested_schema = build_nested_object_schema(node[:nested_properties])
-          property_schema["properties"] = nested_schema[:properties]
-          property_schema["required"] = nested_schema[:required] if nested_schema[:required] && !nested_schema[:required].empty?
+          property_schema["properties"] = nested_schema["properties"]
+          property_schema["required"] = nested_schema["required"] if nested_schema["required"] && !nested_schema["required"].empty?
         end
       elsif node[:is_array]
         property_schema["type"] = "array"
@@ -183,9 +183,9 @@ module RailsOpenapiGen
           items_schema = build_nested_object_schema(node[:array_item_properties])
           items_def = {
             "type" => "object",
-            "properties" => items_schema[:properties]
+            "properties" => items_schema["properties"]
           }
-          items_def["required"] = items_schema[:required] if items_schema[:required] && !items_schema[:required].empty?
+          items_def["required"] = items_schema["required"] if items_schema["required"] && !items_schema["required"].empty?
           property_schema["items"] = items_def
         elsif comment_data[:items]
           # Use specified items type from comment
@@ -226,16 +226,16 @@ module RailsOpenapiGen
     # @param nested_properties [Array<Hash>] Array of nested property nodes
     # @return [Hash] Schema with properties and required fields
     def build_nested_object_schema(nested_properties)
-      schema = { properties: {}, required: [] }
+      schema = { "properties" => {}, "required" => [] }
       
       nested_properties.each do |node|
         property = node[:property]
         comment_data = node[:comment_data] || {}
         
         property_schema = build_property_schema(node)
-        schema[:properties][property] = property_schema
-        if comment_data[:required] != "false" && !node[:is_conditional]
-          schema[:required] << property
+        schema["properties"][property] = property_schema
+        if comment_data[:required] == "true" && !node[:is_conditional]
+          schema["required"] << property
         end
       end
       

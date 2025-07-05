@@ -61,7 +61,8 @@ RSpec.describe RailsOpenapiGen::Generator do
         expect(profile_schema['properties']).to include('bio', 'verified')
         
         # Nested conditional properties should not be in required array
-        expect(profile_schema['required']).to be_empty
+        # When all nested properties are conditional, required field should not be present
+        expect(profile_schema['required']).to be_nil
       end
     end
 
