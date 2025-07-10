@@ -2,26 +2,22 @@
 
 require 'rails-openapi-gen/version'
 require 'rails-openapi-gen/configuration'
-require 'rails-openapi-gen/parsers/comment_parser'
+
+# Zeitwerk autoloading setup
+module RailsOpenapiGen
+  autoload :AstNodes, "rails-openapi-gen/ast_nodes"
+  autoload :Parsers, "rails-openapi-gen/parsers"
+  autoload :Processors, "rails-openapi-gen/processors"
+  autoload :Generators, "rails-openapi-gen/generators"
+  autoload :Importer, "rails-openapi-gen/importer"
+end
+
+# Direct requires for core components that don't follow autoload patterns
 require 'rails-openapi-gen/generators/yaml_generator'
-require 'rails-openapi-gen/importer'
-require 'rails-openapi-gen/ast_nodes'
 
 # Rails integration is handled by Engine
-
-# Load Rails Engine if Rails is available
 if defined?(Rails::Engine)
   require 'rails-openapi-gen/engine'
-
-  # Only load parser-dependent components if parser gem is available
-  begin
-    require 'parser/current'
-    require 'rails-openapi-gen/parsers/routes_parser'
-    require 'rails-openapi-gen/parsers/controller_parser'
-    require 'rails-openapi-gen/parsers/jbuilder/jbuilder_parser'
-  rescue LoadError
-    # parser gem not available, skip these components
-  end
 end
 
 module RailsOpenapiGen
@@ -290,7 +286,7 @@ module RailsOpenapiGen
     # @param node [Hash] Normalized node
     # @return [String] Property name
     def get_property_name(node)
-      node[:property]
+      node[:property] || node[:property_name]
     end
 
     # Determines if a property should be marked as required

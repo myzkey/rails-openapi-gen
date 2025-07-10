@@ -36,7 +36,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::JbuilderParser do
         
         # Check that partial properties are included
         expect(result[:properties]).not_to be_empty
-        expect(result[:properties].map { |p| p.property }).to include("name", "email")
+        expect(result[:properties].map { |p| p.property_name }).to include("name", "email")
       end
     end
 
@@ -68,23 +68,23 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::JbuilderParser do
         result = parser.parse
         
         # Find the user object property first, then the professional property inside it
-        user_prop = result[:properties].find { |p| p.property == "user" }
+        user_prop = result[:properties].find { |p| p.property_name == "user" }
         expect(user_prop).not_to be_nil
         
-        professional_prop = user_prop.nested_properties.find { |p| p.property == "professional" }
+        professional_prop = user_prop.properties.find { |p| p.property_name == "professional" }
         expect(professional_prop).not_to be_nil
-        expect(professional_prop).to be_a(RailsOpenapiGen::AstNodes::ObjectPropertyNode)
-        expect(professional_prop.nested_properties).not_to be_nil
+        expect(professional_prop).to be_a(RailsOpenapiGen::AstNodes::ObjectNode)
+        expect(professional_prop.properties).not_to be_nil
         
         # Check that the nested properties include the partial's properties
-        nested_properties = professional_prop.nested_properties
-        expect(nested_properties.map { |p| p.property }).to include("name", "email")
+        nested_properties = professional_prop.properties
+        expect(nested_properties.map { |p| p.property_name }).to include("name", "email")
         
         # Verify the properties have the correct comment data
-        name_prop = nested_properties.find { |p| p.property == "name" }
+        name_prop = nested_properties.find { |p| p.property_name == "name" }
         expect(name_prop.comment_data.description).to eq("User name")
         
-        email_prop = nested_properties.find { |p| p.property == "email" }
+        email_prop = nested_properties.find { |p| p.property_name == "email" }
         expect(email_prop.comment_data.description).to eq("User email")
       end
     end
