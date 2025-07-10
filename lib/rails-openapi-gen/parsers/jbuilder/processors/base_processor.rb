@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
-require "parser/current"
+require 'parser/current'
+require_relative '../../../ast_nodes'
 
 module RailsOpenapiGen
   module Parsers
@@ -13,6 +14,7 @@ module RailsOpenapiGen
           # @param file_path [String] Path to current file
           # @param property_parser [PropertyCommentParser] Parser for property comments
           def initialize(file_path, property_parser)
+            super()  # Call parent initialize first, with no arguments
             @file_path = file_path
             @property_parser = property_parser
             @properties = []
@@ -27,14 +29,14 @@ module RailsOpenapiGen
           # @param node [Parser::AST::Node] Method call node
           # @return [void]
           def on_send(node)
-            super
+            super(node)
           end
 
           # Processes block nodes - to be overridden by subclasses
           # @param node [Parser::AST::Node] Block node
           # @return [void]
           def on_block(node)
-            super
+            super(node)
           end
 
           # Processes if statements to track conditional properties
@@ -43,14 +45,29 @@ module RailsOpenapiGen
           def on_if(node)
             # Check if this if statement has a conditional comment
             comment_data = find_comment_for_node(node)
-            
+
             if comment_data && comment_data[:conditional]
               @conditional_stack.push(true)
-              super
+              super(node)
               @conditional_stack.pop
             else
-              super
+              super(node)
             end
+          end
+
+          # Processes begin nodes (multiple statements)
+          # @param node [Parser::AST::Node] Begin node
+          # @return [void]
+          def on_begin(node)
+            # Just process all children normally
+            super(node)
+          end
+
+          # Handler for missing node types
+          # @param node [Parser::AST::Node] Node to process
+          # @return [Parser::AST::Node, nil] The node or nil
+          def handler_missing(node)
+            node
           end
 
           protected
@@ -68,8 +85,8 @@ module RailsOpenapiGen
           # @return [String, nil] Full path to partial file or nil
           def resolve_partial_path(partial_name)
             dir = File.dirname(@file_path)
-            
-            if partial_name.include?("/")
+
+            if partial_name.include?('/')
               # Find the app/views directory from the current file path
               path_parts = @file_path.split('/')
               views_index = path_parts.rindex('views')
@@ -81,10 +98,16 @@ module RailsOpenapiGen
                 file_part = "_#{parts[-1]}"
                 File.join(views_path, dir_part, "#{file_part}.json.jbuilder")
               else
-                File.join(dir, "#{partial_name}.json.jbuilder")
+                # For paths like 'users/user', convert to 'users/_user.json.jbuilder'
+                parts = partial_name.split('/')
+                dir_part = parts[0..-2].join('/')
+                file_part = "_#{parts[-1]}"
+                File.join(dir, dir_part, "#{file_part}.json.jbuilder")
               end
             else
-              File.join(dir, "_#{partial_name}.json.jbuilder")
+              # Add underscore prefix if not already present
+              filename = partial_name.start_with?('_') ? partial_name : "_#{partial_name}"
+              File.join(dir, "#{filename}.json.jbuilder")
             end
           end
 
@@ -99,15 +122,54 @@ module RailsOpenapiGen
           end
 
           # Adds a property to the properties array
-          # @param property_info [Hash] Property information
+          # @param property_node [PropertyNode, Hash] Property node or hash (for backward compatibility)
           # @return [void]
-          def add_property(property_info)
-            # Mark as optional if inside a conditional block
-            if @conditional_stack.any?
-              property_info[:is_conditional] = true
+          def add_property(property_node)
+            # Convert hash to PropertyNode if needed (backward compatibility)
+            if property_node.is_a?(Hash)
+              property_node = AstNodes::PropertyNodeFactory.from_hash(property_node)
             end
-            
-            @properties << property_info
+
+            # Mark as conditional if inside a conditional block
+            if @conditional_stack.any?
+              # Create a new node with conditional flag set
+              property_node = create_conditional_node(property_node)
+            end
+
+            @properties << property_node
+          end
+
+          # Creates a conditional version of a property node
+          # @param node [PropertyNode] Original property node
+          # @return [PropertyNode] New conditional property node
+          def create_conditional_node(node)
+            case node
+            when AstNodes::SimplePropertyNode
+              AstNodes::PropertyNodeFactory.create_simple(
+                property: node.property,
+                comment_data: node.comment_data,
+                is_conditional: true
+              )
+            when AstNodes::ArrayPropertyNode
+              AstNodes::PropertyNodeFactory.create_array(
+                property: node.property,
+                comment_data: node.comment_data,
+                is_conditional: true,
+                array_item_properties: node.array_item_properties
+              )
+            when AstNodes::ObjectPropertyNode
+              AstNodes::PropertyNodeFactory.create_object(
+                property: node.property,
+                comment_data: node.comment_data,
+                is_conditional: true,
+                nested_properties: node.nested_properties
+              )
+            when AstNodes::ArrayRootNode
+              # Array root nodes cannot be conditional
+              node
+            else
+              node
+            end
           end
 
           # Pushes a block type to the stack
@@ -128,6 +190,25 @@ module RailsOpenapiGen
           # @return [Boolean] True if inside the specified block type
           def inside_block?(block_type)
             @block_stack.last == block_type
+          end
+
+          # Processes a specific AST node
+          # @param node [Parser::AST::Node] Node to process
+          # @return [void]
+          def process_node(node)
+            return unless node
+            
+            case node.type
+            when :send
+              on_send(node)
+            when :block
+              on_block(node)
+            when :if
+              on_if(node)
+            else
+              # For other node types, recursively process children
+              node.children.each { |child| process_node(child) if child.is_a?(Parser::AST::Node) }
+            end
           end
         end
       end

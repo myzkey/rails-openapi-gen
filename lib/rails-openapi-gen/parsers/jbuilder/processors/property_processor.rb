@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative "base_processor"
-require_relative "../call_detectors/json_call_detector"
+require_relative 'base_processor'
+require_relative '../call_detectors/json_call_detector'
 
 module RailsOpenapiGen
   module Parsers
@@ -13,12 +13,12 @@ module RailsOpenapiGen
           # @return [void]
           def on_send(node)
             receiver, method_name, *args = node.children
-            
+
             if Jbuilder::CallDetectors::JsonCallDetector.json_property?(receiver, method_name)
               process_json_property(node, method_name.to_s, args)
             end
-            
-            super
+
+            super(node)
           end
 
           private
@@ -28,9 +28,9 @@ module RailsOpenapiGen
           # @param property_name [String] Name of the property
           # @param args [Array] Method arguments
           # @return [void]
-          def process_json_property(node, property_name, args)
+          def process_json_property(node, property_name, _args)
             comment_data = find_comment_for_node(node)
-            
+
             # Check if we're inside an array block
             if inside_block?(:array)
               process_simple_property(node, property_name, comment_data)
@@ -44,17 +44,27 @@ module RailsOpenapiGen
           # @param property_name [String] Name of the property
           # @param comment_data [Hash, nil] Parsed comment data
           # @return [void]
-          def process_simple_property(node, property_name, comment_data)
-            property_info = {
-              property: property_name,
-              comment_data: comment_data
-            }
-            
-            unless comment_data && !comment_data.empty?
-              property_info[:comment_data] = { type: "TODO: MISSING COMMENT" }
+          def process_simple_property(_node, property_name, comment_data)
+            # Create comment data object
+            if comment_data && !comment_data.empty?
+              comment_obj = AstNodes::CommentData.new(
+                type: comment_data[:type],
+                description: comment_data[:description],
+                required: comment_data[:required],
+                enum: comment_data[:enum],
+                field_name: comment_data[:field_name]
+              )
+            else
+              comment_obj = AstNodes::CommentData.new(type: 'TODO: MISSING COMMENT')
             end
-            
-            add_property(property_info)
+
+            # Create simple property node
+            property_node = AstNodes::PropertyNodeFactory.create_simple(
+              property: property_name,
+              comment_data: comment_obj
+            )
+
+            add_property(property_node)
           end
         end
       end

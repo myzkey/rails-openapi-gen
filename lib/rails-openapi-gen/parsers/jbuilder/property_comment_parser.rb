@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative '../comment_parser'
+
 module RailsOpenapiGen
   module Parsers
     module Jbuilder

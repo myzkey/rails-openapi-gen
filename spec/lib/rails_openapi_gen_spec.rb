@@ -79,6 +79,15 @@ RSpec.describe RailsOpenapiGen do
             }
           },
           {
+            property: "optional_field",
+            comment_data: {
+              field_name: "optional_field",
+              type: "string",
+              required: "false",
+              description: "Optional field"
+            }
+          },
+          {
             property: "missing_comment_field",
             comment_data: nil
           }
@@ -92,6 +101,7 @@ RSpec.describe RailsOpenapiGen do
         expect(schema["properties"]).to have_key("id")
         expect(schema["properties"]).to have_key("name")
         expect(schema["properties"]).to have_key("status")
+        expect(schema["properties"]).to have_key("optional_field")
         expect(schema["properties"]).to have_key("missing_comment_field")
       end
 
@@ -108,7 +118,9 @@ RSpec.describe RailsOpenapiGen do
 
         expect(schema["required"]).to include("id")
         expect(schema["required"]).to include("name")
-        expect(schema["required"]).not_to include("status")
+        expect(schema["required"]).to include("status")  # Now required by default
+        expect(schema["required"]).to include("missing_comment_field")  # Now required by default
+        expect(schema["required"]).not_to include("optional_field")  # Explicitly marked as required:false
       end
 
       it "includes enum values" do
@@ -131,6 +143,15 @@ RSpec.describe RailsOpenapiGen do
         missing_field = schema["properties"]["missing_comment_field"]
         expect(missing_field["type"]).to eq("string")
         expect(missing_field["description"]).to include("TODO: MISSING COMMENT")
+      end
+
+      it "respects required:false fields" do
+        schema = generator.send(:build_schema, mock_ast)
+
+        optional_field = schema["properties"]["optional_field"]
+        expect(optional_field["type"]).to eq("string")
+        expect(optional_field["description"]).to eq("Optional field")
+        expect(schema["required"]).not_to include("optional_field")
       end
     end
   end

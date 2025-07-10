@@ -42,7 +42,7 @@ module RailsOpenapiGen
             if render_call?(node)
               extract_render_target(node)
             end
-            super
+            super(node)
           end
 
           private

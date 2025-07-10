@@ -144,7 +144,7 @@ module RailsOpenapiGen
         def on_def(node)
           method_name = node.children[0]
           @action_node = node if method_name == @action_name
-          super
+          super(node)
         end
       end
 
