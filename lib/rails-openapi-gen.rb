@@ -17,7 +17,7 @@ if defined?(Rails::Engine)
     require "parser/current"
     require "rails-openapi-gen/parsers/routes_parser"
     require "rails-openapi-gen/parsers/controller_parser"
-    require "rails-openapi-gen/parsers/jbuilder_parser"
+    require "rails-openapi-gen/parsers/jbuilder/jbuilder_parser"
   rescue LoadError
     # parser gem not available, skip these components
   end
@@ -63,7 +63,7 @@ module RailsOpenapiGen
         controller_info = Parsers::ControllerParser.new(route).parse
         
         if controller_info[:jbuilder_path]
-          jbuilder_result = Parsers::JbuilderParser.new(controller_info[:jbuilder_path]).parse
+          jbuilder_result = Parsers::Jbuilder::JbuilderParser.new(controller_info[:jbuilder_path]).parse
           schema = build_schema(jbuilder_result[:properties])
           schemas[route] = {
             schema: schema,
