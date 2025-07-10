@@ -1,24 +1,27 @@
 # frozen_string_literal: true
 
 require_relative 'base_processor'
-require_relative 'composite_processor'
-require_relative '../call_detectors/array_call_detector'
-require_relative '../call_detectors/json_call_detector'
+require_relative '../call_detectors'
 
-module RailsOpenapiGen
-  module Parsers
-    module Jbuilder
-      module Processors
-        class ArrayProcessor < BaseProcessor
+module RailsOpenapiGen::Parsers::Jbuilder::Processors
+  class ArrayProcessor < BaseProcessor
+          # Alias for shorter reference to call detectors
+          CallDetectors = RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
+          # Alias for shorter reference to JbuilderParser
+          JbuilderParser = RailsOpenapiGen::Parsers::Jbuilder::JbuilderParser
+          # Lazy load CompositeProcessor to avoid circular dependency
+          def self.composite_processor_class
+            RailsOpenapiGen::Parsers::Jbuilder::Processors::CompositeProcessor
+          end
           # Processes method call nodes for array-related operations
           # @param node [Parser::AST::Node] Method call node
           # @return [void]
           def on_send(node)
             receiver, method_name, *args = node.children
 
-            if Jbuilder::CallDetectors::ArrayCallDetector.array_call?(receiver, method_name)
+            if CallDetectors::ArrayCallDetector.array_call?(receiver, method_name)
               # Check if this is an array with partial
-              if args.any? && args.any? { |arg| arg.type == :hash && Jbuilder::CallDetectors::ArrayCallDetector.has_partial_key?(arg) }
+              if args.any? && args.any? { |arg| arg.type == :hash && CallDetectors::ArrayCallDetector.has_partial_key?(arg) }
                 process_array_with_partial(node, args)
               else
                 process_array_property(node)
@@ -35,11 +38,10 @@ module RailsOpenapiGen
             send_node, args_node, = node.children
             receiver, method_name, = send_node.children
 
-            if Jbuilder::CallDetectors::ArrayCallDetector.array_call?(receiver, method_name)
+            if CallDetectors::ArrayCallDetector.array_call?(receiver, method_name)
               # This is json.array! block
               process_array_block(node)
-            elsif Jbuilder::CallDetectors::JsonCallDetector.json_property?(receiver,
-                                                                           method_name) && method_name != :array!
+            elsif CallDetectors::JsonCallDetector.json_property?(receiver, method_name) && method_name != :array!
               # Check if this is an array iteration block (has block arguments)
               if args_node && args_node.type == :args && args_node.children.any?
                 # This is an array iteration block like json.tags @tags do |tag|
@@ -62,8 +64,8 @@ module RailsOpenapiGen
             comment_data = find_comment_for_node(node)
 
             # Save current context
-            previous_properties = @properties.dup
-            previous_partials = @partials.dup
+            previous_properties = properties.dup
+            previous_partials = partials.dup
 
             # Create a temporary properties array for array items
             @properties = []
@@ -73,7 +75,7 @@ module RailsOpenapiGen
             # Process the block contents using CompositeProcessor
             if body
               # Create a CompositeProcessor to handle all types of calls within the block
-              composite_processor = CompositeProcessor.new(@file_path, @property_parser)
+              composite_processor = self.class.composite_processor_class.new(@file_path, @property_parser)
               composite_processor.process_node(body)
 
               # Merge results from the composite processor
@@ -82,10 +84,10 @@ module RailsOpenapiGen
             end
 
             # Collect item properties
-            item_properties = @properties.dup
+            item_properties = properties.dup
 
             # Process any partials found in this block
-            @partials.each do |partial_path|
+            partials.each do |partial_path|
               if File.exist?(partial_path)
                 partial_properties = parse_partial_for_nested_object(partial_path)
                 item_properties.concat(partial_properties)
@@ -100,7 +102,7 @@ module RailsOpenapiGen
             # Convert item properties to structured nodes if needed
             structured_item_properties = item_properties.map do |item|
               if item.is_a?(Hash)
-                AstNodes::PropertyNodeFactory.from_hash(item)
+                RailsOpenapiGen::AstNodes::PropertyNodeFactory.from_hash(item)
               else
                 item
               end
@@ -108,16 +110,16 @@ module RailsOpenapiGen
 
             # Create comment data
             comment_obj = if comment_data
-              AstNodes::CommentData.new(
+              RailsOpenapiGen::AstNodes::CommentData.new(
                 type: comment_data[:type] || 'array',
                 items: comment_data[:items] || { type: 'object' }
               )
             else
-              AstNodes::CommentData.new(type: 'array', items: { type: 'object' })
+              RailsOpenapiGen::AstNodes::CommentData.new(type: 'array', items: { type: 'object' })
             end
 
             # Create array root node
-            array_root_node = AstNodes::PropertyNodeFactory.create_array_root(
+            array_root_node = RailsOpenapiGen::AstNodes::PropertyNodeFactory.create_array_root(
               comment_data: comment_obj,
               array_item_properties: structured_item_properties
             )
@@ -167,7 +169,7 @@ module RailsOpenapiGen
               resolved_path = resolve_partial_path(partial_path)
               if resolved_path && File.exist?(resolved_path)
                 # Parse the partial to get its properties
-                partial_parser = RailsOpenapiGen::Parsers::Jbuilder::JbuilderParser.new(resolved_path)
+                partial_parser = JbuilderParser.new(resolved_path)
                 partial_result = partial_parser.parse
 
                 # Create array schema with items from the partial
@@ -197,8 +199,8 @@ module RailsOpenapiGen
             comment_data = find_comment_for_node(node)
 
             # Save current context
-            previous_properties = @properties.dup
-            previous_partials = @partials.dup
+            previous_properties = properties.dup
+            previous_partials = partials.dup
 
             # Create a temporary properties array for array items
             @properties = []
@@ -209,7 +211,7 @@ module RailsOpenapiGen
             _, _args, body = node.children
             if body
               # Create a CompositeProcessor to handle all types of calls within the block
-              composite_processor = CompositeProcessor.new(@file_path, @property_parser)
+              composite_processor = self.class.composite_processor_class.new(@file_path, @property_parser)
               composite_processor.process_node(body)
 
               # Merge results from the composite processor
@@ -218,10 +220,10 @@ module RailsOpenapiGen
             end
 
             # Collect item properties
-            item_properties = @properties.dup
+            item_properties = properties.dup
 
             # Process any partials found in this block
-            @partials.each do |partial_path|
+            partials.each do |partial_path|
               if File.exist?(partial_path)
                 partial_properties = parse_partial_for_nested_object(partial_path)
                 item_properties.concat(partial_properties)
@@ -243,8 +245,5 @@ module RailsOpenapiGen
 
             add_property(property_info)
           end
-        end
-      end
-    end
   end
 end

@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
-module RailsOpenapiGen
-  module AstNodes
+module RailsOpenapiGen::AstNodes
     # Represents comment data parsed from @openapi annotations
     class CommentData
       attr_reader :type, :description, :required, :enum, :field_name, :items, :conditional
@@ -156,7 +155,13 @@ module RailsOpenapiGen
       class << self
         # Creates a property node from hash data (for backward compatibility)
         def from_hash(hash_data)
-          comment_data = create_comment_data(hash_data[:comment_data])
+          # Handle both hash and structured node input
+          if hash_data.is_a?(Hash)
+            comment_data = create_comment_data(hash_data[:comment_data])
+          else
+            # Already a structured node, return as-is
+            return hash_data
+          end
           
           if hash_data[:is_array_root]
             ArrayRootNode.new(
@@ -250,5 +255,4 @@ module RailsOpenapiGen
         end
       end
     end
-  end
 end

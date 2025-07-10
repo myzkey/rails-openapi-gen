@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "parser/current"
-require_relative "template_processors/jbuilder_template_processor"
+require_relative "template_processors"
 
 module RailsOpenapiGen
   module Parsers
@@ -13,7 +13,7 @@ module RailsOpenapiGen
       # @param template_processor [ResponseTemplateProcessor] Template processor for extracting template paths
       def initialize(route, template_processor: nil)
         @route = route
-        @template_processor = template_processor || TemplateProcessors::JbuilderTemplateProcessor.new(route[:controller], route[:action])
+        @template_processor = template_processor || RailsOpenapiGen::Parsers::TemplateProcessors::JbuilderTemplateProcessor.new(route[:controller], route[:action])
       end
 
       # Parses controller to find action method and response template

@@ -45,13 +45,13 @@ RSpec.describe "Array with Partial Processing" do
       expect(result[:properties].length).to eq(1)
       
       exp_property = result[:properties].first
-      expect(exp_property[:property]).to eq('professional_experiences')
-      expect(exp_property[:is_array]).to be true
-      expect(exp_property[:array_item_properties]).not_to be_nil
+      expect(exp_property.property).to eq('professional_experiences')
+      expect(exp_property).to be_a(RailsOpenapiGen::AstNodes::ArrayPropertyNode)
+      expect(exp_property.array_item_properties).not_to be_nil
       
       # Should have item properties from the partial
-      item_properties = exp_property[:array_item_properties]
-      property_names = item_properties.map { |p| p[:property] }
+      item_properties = exp_property.array_item_properties
+      property_names = item_properties.map { |p| p.property }
       expect(property_names).to include('id', 'company_name', 'position', 'end_date')
       
       # Generate schema to verify structure

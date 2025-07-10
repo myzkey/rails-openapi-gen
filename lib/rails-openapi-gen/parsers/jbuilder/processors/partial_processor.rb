@@ -1,20 +1,19 @@
 # frozen_string_literal: true
 
 require_relative 'base_processor'
-require_relative '../call_detectors/partial_call_detector'
+require_relative '../call_detectors'
 
-module RailsOpenapiGen
-  module Parsers
-    module Jbuilder
-      module Processors
-        class PartialProcessor < BaseProcessor
+module RailsOpenapiGen::Parsers::Jbuilder::Processors
+  class PartialProcessor < BaseProcessor
+          # Alias for shorter reference to call detectors
+          CallDetectors = RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
           # Processes method call nodes for partial render calls
           # @param node [Parser::AST::Node] Method call node
           # @return [void]
           def on_send(node)
             receiver, method_name, *args = node.children
 
-            process_partial(args) if Jbuilder::CallDetectors::PartialCallDetector.partial_call?(receiver, method_name)
+            process_partial(args) if CallDetectors::PartialCallDetector.partial_call?(receiver, method_name)
 
             super(node)
           end
@@ -59,8 +58,5 @@ module RailsOpenapiGen
             
             nil
           end
-        end
-      end
-    end
   end
 end

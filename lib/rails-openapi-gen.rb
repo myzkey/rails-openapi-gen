@@ -279,11 +279,11 @@ module RailsOpenapiGen
       end
     end
 
-    # Checks if a node represents an array (array root or array property)
+    # Checks if a node represents a direct array response (not an array property)
     # @param node [Hash] Normalized node
-    # @return [Boolean] True if node is array-related
+    # @return [Boolean] True if node is a direct array response
     def is_array_node?(node)
-      node[:is_array_root] || node[:is_array] || node[:node_type] == :array_root || node[:node_type] == :array
+      node[:is_array_root] || node[:node_type] == :array_root
     end
 
     # Gets the property name from a normalized node

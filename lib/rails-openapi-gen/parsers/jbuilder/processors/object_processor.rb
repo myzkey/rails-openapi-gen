@@ -1,14 +1,16 @@
 # frozen_string_literal: true
 
 require_relative 'base_processor'
-require_relative 'composite_processor'
-require_relative '../call_detectors/json_call_detector'
+require_relative '../call_detectors'
 
-module RailsOpenapiGen
-  module Parsers
-    module Jbuilder
-      module Processors
-        class ObjectProcessor < BaseProcessor
+module RailsOpenapiGen::Parsers::Jbuilder::Processors
+  class ObjectProcessor < BaseProcessor
+          # Alias for shorter reference to call detectors
+          CallDetectors = RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
+          # Lazy load CompositeProcessor to avoid circular dependency
+          def self.composite_processor_class
+            RailsOpenapiGen::Parsers::Jbuilder::Processors::CompositeProcessor
+          end
           # Processes block nodes for nested object blocks
           # @param node [Parser::AST::Node] Block node
           # @return [void]
@@ -16,7 +18,7 @@ module RailsOpenapiGen
             send_node, args_node, = node.children
             receiver, method_name, = send_node.children
 
-            if Jbuilder::CallDetectors::JsonCallDetector.json_property?(receiver, method_name) && method_name != :array!
+            if CallDetectors::JsonCallDetector.json_property?(receiver, method_name) && method_name != :array!
               # Check if this is a nested object block (no block arguments)
               if !args_node || args_node.type != :args || args_node.children.empty?
                 # This is a nested object block like json.profile do
@@ -40,8 +42,8 @@ module RailsOpenapiGen
 
             # Save current context
             previous_nested_objects = @nested_objects.dup
-            previous_properties = @properties.dup
-            previous_partials = @partials.dup
+            previous_properties = properties.dup
+            previous_partials = partials.dup
 
             # Create a temporary properties array for this nested object
             @properties = []
@@ -52,7 +54,7 @@ module RailsOpenapiGen
             _, _args, body = node.children
             if body
               # Create a CompositeProcessor to handle all types of calls within the block
-              composite_processor = CompositeProcessor.new(@file_path, @property_parser)
+              composite_processor = self.class.composite_processor_class.new(@file_path, @property_parser)
               composite_processor.process_node(body)
 
               # Merge results from the composite processor
@@ -61,10 +63,10 @@ module RailsOpenapiGen
             end
 
             # Collect nested properties from direct block processing
-            nested_properties = @properties.dup
+            nested_properties = properties.dup
 
             # Process any partials found in this block
-            @partials.each do |partial_path|
+            partials.each do |partial_path|
               if File.exist?(partial_path)
                 partial_properties = parse_partial_for_nested_object(partial_path)
                 nested_properties.concat(partial_properties)
@@ -88,17 +90,17 @@ module RailsOpenapiGen
               
               # Create comment data
               comment_obj = if comment_data
-                AstNodes::CommentData.new(
+                RailsOpenapiGen::AstNodes::CommentData.new(
                   type: comment_data[:type] || 'array',
                   items: comment_data[:items] || { type: 'object' }
                 )
               else
-                AstNodes::CommentData.new(type: 'array', items: { type: 'object' })
+                RailsOpenapiGen::AstNodes::CommentData.new(type: 'array', items: { type: 'object' })
               end
 
               # Create array property node
               array_item_properties = get_array_item_properties(array_root_node)
-              property_node = AstNodes::PropertyNodeFactory.create_array(
+              property_node = RailsOpenapiGen::AstNodes::PropertyNodeFactory.create_array(
                 property: property_name,
                 comment_data: comment_obj,
                 array_item_properties: array_item_properties
@@ -109,15 +111,15 @@ module RailsOpenapiGen
 
               # Create comment data
               comment_obj = if comment_data
-                AstNodes::CommentData.new(
+                RailsOpenapiGen::AstNodes::CommentData.new(
                   type: comment_data[:type] || 'object'
                 )
               else
-                AstNodes::CommentData.new(type: 'object')
+                RailsOpenapiGen::AstNodes::CommentData.new(type: 'object')
               end
 
               # Add the parent property as a regular object
-              property_node = AstNodes::PropertyNodeFactory.create_object(
+              property_node = RailsOpenapiGen::AstNodes::PropertyNodeFactory.create_object(
                 property: property_name,
                 comment_data: comment_obj,
                 nested_properties: nested_properties
@@ -137,8 +139,8 @@ module RailsOpenapiGen
               (property[:is_array_root] || property[:is_array]) &&
               (property[:property] == 'items' || property[:is_array])
             else
-              property.is_a?(AstNodes::ArrayRootNode) ||
-              (property.is_a?(AstNodes::ArrayPropertyNode) && property.property == 'items')
+              property.is_a?(RailsOpenapiGen::AstNodes::ArrayRootNode) ||
+              (property.is_a?(RailsOpenapiGen::AstNodes::ArrayPropertyNode) && property.property == 'items')
             end
           end
 
@@ -152,8 +154,5 @@ module RailsOpenapiGen
               array_node.array_item_properties || []
             end
           end
-        end
-      end
-    end
   end
 end

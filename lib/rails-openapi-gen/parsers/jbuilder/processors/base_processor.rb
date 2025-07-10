@@ -3,12 +3,19 @@
 require 'parser/current'
 require_relative '../../../ast_nodes'
 
-module RailsOpenapiGen
-  module Parsers
-    module Jbuilder
-      module Processors
-        class BaseProcessor < Parser::AST::Processor
-          attr_reader :properties, :partials
+module RailsOpenapiGen::Parsers::Jbuilder::Processors
+  class BaseProcessor < Parser::AST::Processor
+          # Alias for shorter reference to JbuilderParser
+          JbuilderParser = RailsOpenapiGen::Parsers::Jbuilder::JbuilderParser
+          # Ensure properties array is always initialized
+          def properties
+            @properties ||= []
+          end
+
+          # Ensure partials array is always initialized  
+          def partials
+            @partials ||= []
+          end
 
           # Initializes base processor
           # @param file_path [String] Path to current file
@@ -60,7 +67,7 @@ module RailsOpenapiGen
           # @return [void]
           def on_begin(node)
             # Just process all children normally
-            super(node)
+            super
           end
 
           # Handler for missing node types
@@ -116,7 +123,7 @@ module RailsOpenapiGen
           # @return [Array<Hash>] Array of property definitions
           def parse_partial_for_nested_object(partial_path)
             # Create a new parser to parse the partial independently
-            partial_parser = RailsOpenapiGen::Parsers::Jbuilder::JbuilderParser.new(partial_path)
+            partial_parser = JbuilderParser.new(partial_path)
             result = partial_parser.parse
             result[:properties]
           end
@@ -127,7 +134,7 @@ module RailsOpenapiGen
           def add_property(property_node)
             # Convert hash to PropertyNode if needed (backward compatibility)
             if property_node.is_a?(Hash)
-              property_node = AstNodes::PropertyNodeFactory.from_hash(property_node)
+              property_node = RailsOpenapiGen::AstNodes::PropertyNodeFactory.from_hash(property_node)
             end
 
             # Mark as conditional if inside a conditional block
@@ -144,27 +151,27 @@ module RailsOpenapiGen
           # @return [PropertyNode] New conditional property node
           def create_conditional_node(node)
             case node
-            when AstNodes::SimplePropertyNode
-              AstNodes::PropertyNodeFactory.create_simple(
+            when RailsOpenapiGen::AstNodes::SimplePropertyNode
+              RailsOpenapiGen::AstNodes::PropertyNodeFactory.create_simple(
                 property: node.property,
                 comment_data: node.comment_data,
                 is_conditional: true
               )
-            when AstNodes::ArrayPropertyNode
-              AstNodes::PropertyNodeFactory.create_array(
+            when RailsOpenapiGen::AstNodes::ArrayPropertyNode
+              RailsOpenapiGen::AstNodes::PropertyNodeFactory.create_array(
                 property: node.property,
                 comment_data: node.comment_data,
                 is_conditional: true,
                 array_item_properties: node.array_item_properties
               )
-            when AstNodes::ObjectPropertyNode
-              AstNodes::PropertyNodeFactory.create_object(
+            when RailsOpenapiGen::AstNodes::ObjectPropertyNode
+              RailsOpenapiGen::AstNodes::PropertyNodeFactory.create_object(
                 property: node.property,
                 comment_data: node.comment_data,
                 is_conditional: true,
                 nested_properties: node.nested_properties
               )
-            when AstNodes::ArrayRootNode
+            when RailsOpenapiGen::AstNodes::ArrayRootNode
               # Array root nodes cannot be conditional
               node
             else
@@ -210,8 +217,12 @@ module RailsOpenapiGen
               node.children.each { |child| process_node(child) if child.is_a?(Parser::AST::Node) }
             end
           end
-        end
-      end
-    end
+
+          # Clears processor results arrays
+          # @return [void]
+          def clear_results
+            @properties = []
+            @partials = []
+          end
   end
 end
