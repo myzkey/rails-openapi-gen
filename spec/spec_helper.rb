@@ -39,7 +39,7 @@ end
 Object.const_set(:Rails, MockRails) unless defined?(Rails)
 
 # Now require the main library
-require "rails_openapi_gen"
+require "rails-openapi-gen"
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|

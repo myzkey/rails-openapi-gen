@@ -1,23 +1,23 @@
 # frozen_string_literal: true
 
-require "rails_openapi_gen/version"
-require "rails_openapi_gen/configuration"
-require "rails_openapi_gen/parsers/comment_parser"
-require "rails_openapi_gen/generators/yaml_generator"
-require "rails_openapi_gen/importer"
+require "rails-openapi-gen/version"
+require "rails-openapi-gen/configuration"
+require "rails-openapi-gen/parsers/comment_parser"
+require "rails-openapi-gen/generators/yaml_generator"
+require "rails-openapi-gen/importer"
 
 # Rails integration is handled by Engine
 
 # Load Rails Engine if Rails is available
 if defined?(Rails::Engine)
-  require "rails_openapi_gen/engine"
+  require "rails-openapi-gen/engine"
   
   # Only load parser-dependent components if parser gem is available
   begin
     require "parser/current"
-    require "rails_openapi_gen/parsers/routes_parser"
-    require "rails_openapi_gen/parsers/controller_parser"
-    require "rails_openapi_gen/parsers/jbuilder_parser"
+    require "rails-openapi-gen/parsers/routes_parser"
+    require "rails-openapi-gen/parsers/controller_parser"
+    require "rails-openapi-gen/parsers/jbuilder_parser"
   rescue LoadError
     # parser gem not available, skip these components
   end

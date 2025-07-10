@@ -10,6 +10,30 @@ rails-openapi-gen analyzes your Rails application's routes.rb, controllers, and 
 
 AST analysis alone cannot accurately infer all conditional branches and partial patterns. Type, required status, enum values, and descriptions should be explicitly defined using `# @openapi` comments as the source of truth.
 
+### Limitations
+
+The following Jbuilder patterns are not currently supported:
+
+- **Shorthand array syntax**: `json.array! @items, :id, :name` - This shorthand notation cannot be annotated with `@openapi` comments. Use the block form instead:
+  ```ruby
+  json.array! @items do |item|
+    # @openapi id:integer required:true description:"Item ID"
+    json.id item.id
+    
+    # @openapi name:string required:true description:"Item name"
+    json.name item.name
+  end
+  ```
+
+- **Extract shorthand**: `json.extract! @item, :id, :name` - This shorthand notation cannot be annotated with `@openapi` comments. Use explicit property assignments instead:
+  ```ruby
+  # @openapi id:integer required:true description:"Item ID"
+  json.id @item.id
+  
+  # @openapi name:string required:true description:"Item name"
+  json.name @item.name
+  ```
+
 ## Installation
 
 Add this line to your application's Gemfile:

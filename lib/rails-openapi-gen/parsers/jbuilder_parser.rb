@@ -117,7 +117,10 @@ module RailsOpenapiGen
         def on_send(node)
           receiver, method_name, *args = node.children
           
-          if array_call?(receiver, method_name)
+          if cache_call?(receiver, method_name) || cache_if_call?(receiver, method_name) || jbuilder_helper?(receiver, method_name)
+            # Skip Jbuilder helper methods - they are not JSON properties
+            super
+          elsif array_call?(receiver, method_name)
             # Check if this is an array with partial
             if args.any? && args.any? { |arg| arg.type == :hash && has_partial_key?(arg) }
               process_array_with_partial(node, args)
@@ -140,7 +143,10 @@ module RailsOpenapiGen
           send_node, args_node, body = node.children
           receiver, method_name, *send_args = send_node.children
           
-          if json_property?(receiver, method_name) && method_name != :array!
+          if cache_call?(receiver, method_name) || cache_if_call?(receiver, method_name)
+            # This is json.cache! or json.cache_if! block - just process the block contents
+            process(body) if body
+          elsif json_property?(receiver, method_name) && method_name != :array!
             # Check if this is an array iteration block (has block arguments)
             if args_node && args_node.type == :args && args_node.children.any?
               # This is an array iteration block like json.tags @tags do |tag|
@@ -199,6 +205,31 @@ module RailsOpenapiGen
         # @return [Boolean] True if array call
         def array_call?(receiver, method_name)
           method_name == :array! && receiver && receiver.type == :send && receiver.children[1] == :json
+        end
+
+        # Checks if node represents a json.cache! call
+        # @param receiver [Parser::AST::Node] Receiver node
+        # @param method_name [Symbol] Method name
+        # @return [Boolean] True if cache call
+        def cache_call?(receiver, method_name)
+          method_name == :cache! && receiver && receiver.type == :send && receiver.children[1] == :json
+        end
+
+        # Checks if node represents a json.cache_if! call
+        # @param receiver [Parser::AST::Node] Receiver node
+        # @param method_name [Symbol] Method name
+        # @return [Boolean] True if cache_if call
+        def cache_if_call?(receiver, method_name)
+          method_name == :cache_if! && receiver && receiver.type == :send && receiver.children[1] == :json
+        end
+
+        # Checks if node represents a Jbuilder helper method that should be ignored
+        # @param receiver [Parser::AST::Node] Receiver node
+        # @param method_name [Symbol] Method name
+        # @return [Boolean] True if helper method
+        def jbuilder_helper?(receiver, method_name)
+          helper_methods = [:key_format!, :ignore_nil!, :merge!, :deep_format_keys!, :set!, :child!, :nil!, :null!, :cache_root!]
+          helper_methods.include?(method_name) && receiver && receiver.type == :send && receiver.children[1] == :json
         end
 
         # Processes a simple JSON property assignment

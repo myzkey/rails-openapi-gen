@@ -3,19 +3,19 @@
 namespace :openapi do
   desc "Generate OpenAPI specification from Rails application"
   task generate: :environment do
-    require "rails_openapi_gen"
+    require "rails-openapi-gen"
     RailsOpenapiGen.generate
   end
 
   desc "Check for missing @openapi comments and uncommitted changes"
   task check: :environment do
-    require "rails_openapi_gen"
+    require "rails-openapi-gen"
     RailsOpenapiGen.check
   end
 
   desc "Import OpenAPI specification and add comments to Jbuilder templates"
   task :import, [:openapi_file] => :environment do |_task, args|
-    require "rails_openapi_gen"
+    require "rails-openapi-gen"
     
     openapi_file = args[:openapi_file]
     
