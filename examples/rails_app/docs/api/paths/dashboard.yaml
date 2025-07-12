@@ -1,8 +1,8 @@
 ---
-"/api/dashboard":
+"/dashboard":
   get:
     summary: Index Api/dashboard
-    operationId: api_dashboard_index
+    operationId: dashboard_index
     tags:
     - Api
     responses:

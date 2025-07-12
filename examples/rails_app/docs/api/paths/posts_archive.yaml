@@ -1,8 +1,8 @@
 ---
-"/api/posts/archive":
+"/posts/archive":
   get:
     summary: Archive Api/post
-    operationId: api_posts_archive
+    operationId: posts_archive
     tags:
     - Api
     responses:

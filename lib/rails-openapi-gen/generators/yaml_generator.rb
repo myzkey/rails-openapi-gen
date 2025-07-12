@@ -106,11 +106,15 @@ module RailsOpenapiGen
         end
       end
 
-      # Converts Rails path format to OpenAPI format
-      # @param path [String] Rails path (e.g., "/users/:id")
+      # Converts Rails path format to OpenAPI format and removes API prefix if configured
+      # @param path [String] Rails path (e.g., "/api/v1/users/:id")
       # @return [String] OpenAPI path (e.g., "/users/{id}")
       def normalize_path(path)
-        path.gsub(/:(\w+)/, '{\\1}')
+        # First remove API prefix if configured
+        path_without_prefix = @config.remove_api_prefix(path)
+        
+        # Then convert Rails path parameters to OpenAPI format
+        path_without_prefix.gsub(/:(\w+)/, '{\\1}')
       end
 
       # Builds OpenAPI operation object for a route
@@ -120,9 +124,12 @@ module RailsOpenapiGen
       # @param operation_info [Hash, nil] Operation metadata from comments
       # @return [Hash] OpenAPI operation object
       def build_operation(route, schema, parameters = {}, operation_info = nil)
+        # Generate operationId with prefix removal
+        default_operation_id = generate_operation_id(route)
+        
         operation = {
           "summary" => operation_info&.dig(:summary) || "#{humanize(route[:action])} #{humanize(singularize(route[:controller]))}",
-          "operationId" => operation_info&.dig(:operationId) || "#{route[:controller].gsub('/', '_')}_#{route[:action]}",
+          "operationId" => operation_info&.dig(:operationId) || default_operation_id,
           "tags" => operation_info&.dig(:tags) || [humanize(route[:controller].split('/').first)]
         }
 
@@ -258,13 +265,52 @@ module RailsOpenapiGen
         str.end_with?('s') ? str[0..-2] : str
       end
 
-      # Convert PascalCase/camelCase string to kebab-case
+      # Convert PascalCase/camelCase string to kebab-case with optional prefix removal
       # @param string [String] String to convert
       # @return [String] kebab-case string
       def to_kebab_case(string)
-        string.to_s
-              .gsub(/([a-z\d])([A-Z])/, '\1-\2')  # Insert dash before capital letters
-              .downcase                           # Convert to lowercase
+        # First remove component prefix if configured
+        name_without_prefix = @config.remove_component_prefix(string.to_s)
+        
+        name_without_prefix.gsub(/([a-z\d])([A-Z])/, '\1-\2')  # Insert dash before capital letters
+                          .downcase                           # Convert to lowercase
+      end
+
+      # Generate operationId with prefix removal from controller path
+      # @param route [Hash] Route information
+      # @return [String] Operation ID with prefix removed
+      def generate_operation_id(route)
+        controller_path = route[:controller]
+        action = route[:action]
+        
+        # Remove API prefix from controller path if configured
+        controller_without_prefix = remove_controller_prefix(controller_path)
+        
+        # Convert to underscore format for operationId
+        "#{controller_without_prefix.gsub('/', '_')}_#{action}"
+      end
+
+      # Remove API prefix from controller path
+      # @param controller_path [String] Controller path (e.g., "api/v1/users")  
+      # @return [String] Controller path with prefix removed (e.g., "users")
+      def remove_controller_prefix(controller_path)
+        # Use the same API prefix configuration
+        api_prefix = @config.view_paths&.dig(:api_prefix)
+        return controller_path unless api_prefix
+        
+        # Convert api_prefix to controller format (e.g., "api/v1" -> "api/v1")
+        normalized_prefix = api_prefix.gsub(/^\/+|\/+$/, '') # Remove leading/trailing slashes
+        
+        # Remove the prefix if the controller path starts with it
+        if controller_path.start_with?(normalized_prefix + '/')
+          remaining_path = controller_path[(normalized_prefix.length + 1)..-1]
+          remaining_path.empty? ? controller_path : remaining_path
+        elsif controller_path == normalized_prefix
+          # If controller path is exactly the prefix, return empty or fallback
+          'root'
+        else
+          controller_path
+        end
       end
 
       # Builds OpenAPI parameter objects from route and parameter data
@@ -381,11 +427,15 @@ module RailsOpenapiGen
         }
 
         @components.each_key do |component_name|
+          # Remove prefix from both schema name and file name
+          schema_name_without_prefix = @config.remove_component_prefix(component_name)
           kebab_filename = to_kebab_case(component_name)
-          puts "🔗 Creating reference for component: #{component_name} -> #{kebab_filename}.yaml" if ENV['RAILS_OPENAPI_DEBUG']
+          
+          puts "🔗 Creating reference for component: #{component_name} -> #{schema_name_without_prefix} (#{kebab_filename}.yaml)" if ENV['RAILS_OPENAPI_DEBUG']
           
           # Create $ref to external component file (using kebab-case filename)
-          components["schemas"][component_name] = {
+          # Use schema name without prefix as the key
+          components["schemas"][schema_name_without_prefix] = {
             "$ref" => "./components/schemas/#{kebab_filename}.yaml"
           }
         end

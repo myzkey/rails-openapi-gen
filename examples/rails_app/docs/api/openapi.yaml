@@ -19,10 +19,10 @@ servers:
 - url: http://localhost:3000
   description: Development server
 paths:
-  "/api/dashboard":
+  "/dashboard":
     get:
       summary: Index Api/dashboard
-      operationId: api_dashboard_index
+      operationId: dashboard_index
       tags:
       - Api
       responses:
@@ -82,10 +82,10 @@ paths:
                 - active_users
                 - recent_users
                 - recent_posts
-  "/api/orders/{id}":
+  "/orders/{id}":
     get:
       summary: Show Api/order
-      operationId: api_orders_show
+      operationId: orders_show
       tags:
       - Api
       parameters:
@@ -121,7 +121,7 @@ paths:
                           type: object
                           properties:
                             order_item:
-                              "$ref": "#/components/schemas/ApiOrdersModelOrderItem"
+                              "$ref": "#/components/schemas/OrdersModelOrderItem"
                           required:
                           - order_item
                     required:
@@ -130,14 +130,14 @@ paths:
                     type: object
                     properties:
                       address:
-                        "$ref": "#/components/schemas/ApiUsersModelAddress"
+                        "$ref": "#/components/schemas/UsersModelAddress"
                     required:
                     - address
                   payment_method:
                     type: object
                     properties:
                       payment_method:
-                        "$ref": "#/components/schemas/ApiOrdersModelPaymentMethod"
+                        "$ref": "#/components/schemas/OrdersModelPaymentMethod"
                     required:
                     - payment_method
                 required:
@@ -149,10 +149,10 @@ paths:
                 - order_items
                 - shipping_address
                 - payment_method
-  "/api/posts":
+  "/posts":
     get:
       summary: Index Api/post
-      operationId: api_posts_index
+      operationId: posts_index
       tags:
       - Api
       responses:
@@ -199,10 +199,10 @@ paths:
                   - published
                   - created_at
                   - tags
-  "/api/posts/archive":
+  "/posts/archive":
     get:
       summary: Archive Api/post
-      operationId: api_posts_archive
+      operationId: posts_archive
       tags:
       - Api
       responses:
@@ -270,10 +270,10 @@ paths:
                 required:
                 - posts
                 - metadata
-  "/api/posts/{id}":
+  "/posts/{id}":
     get:
       summary: Show Api/post
-      operationId: api_posts_show
+      operationId: posts_show
       tags:
       - Api
       parameters:
@@ -291,12 +291,12 @@ paths:
                 type: object
                 properties:
                   post:
-                    "$ref": "#/components/schemas/ApiPostsPost"
+                    "$ref": "#/components/schemas/PostsPost"
                   author:
                     type: object
                     properties:
                       user:
-                        "$ref": "#/components/schemas/ApiUsersUser"
+                        "$ref": "#/components/schemas/UsersUser"
                     required:
                     - user
                   tags:
@@ -317,10 +317,10 @@ paths:
                 - tags
                 - comments_count
                 - likes_count
-  "/api/posts/{post_id}/comments":
+  "/posts/{post_id}/comments":
     get:
       summary: Index Api/comment
-      operationId: api_comments_index
+      operationId: comments_index
       tags:
       - Api
       parameters:
@@ -360,10 +360,10 @@ paths:
                   - author
                   - created_at
                   - likes
-  "/api/users/{user_id}/orders":
+  "/users/{user_id}/orders":
     get:
       summary: Index Api/users/order
-      operationId: api_users_orders_index
+      operationId: users_orders_index
       tags:
       - Api
       parameters:
@@ -383,13 +383,13 @@ paths:
                   type: object
                   properties:
                     order:
-                      "$ref": "#/components/schemas/ApiUsersModelOrder"
+                      "$ref": "#/components/schemas/UsersModelOrder"
                   required:
                   - order
-  "/api/users/{user_id}/posts":
+  "/users/{user_id}/posts":
     get:
       summary: Index Api/post
-      operationId: api_posts_index
+      operationId: posts_index
       tags:
       - Api
       parameters:
@@ -444,7 +444,7 @@ paths:
                   - tags
     post:
       summary: Create Api/post
-      operationId: api_posts_create
+      operationId: posts_create
       tags:
       - Api
       parameters:
@@ -474,10 +474,10 @@ paths:
                 - message
                 - post_id
                 - created_at
-  "/api/users/{user_id}/posts/{id}":
+  "/users/{user_id}/posts/{id}":
     get:
       summary: Show Api/post
-      operationId: api_posts_show
+      operationId: posts_show
       tags:
       - Api
       parameters:
@@ -500,12 +500,12 @@ paths:
                 type: object
                 properties:
                   post:
-                    "$ref": "#/components/schemas/ApiPostsPost"
+                    "$ref": "#/components/schemas/PostsPost"
                   author:
                     type: object
                     properties:
                       user:
-                        "$ref": "#/components/schemas/ApiUsersUser"
+                        "$ref": "#/components/schemas/UsersUser"
                     required:
                     - user
                   tags:
@@ -528,15 +528,15 @@ paths:
                 - likes_count
 components:
   schemas:
-    ApiPostsPost:
-      "$ref": "./components/schemas/api-posts-post.yaml"
-    ApiUsersUser:
-      "$ref": "./components/schemas/api-users-user.yaml"
-    ApiUsersModelOrder:
-      "$ref": "./components/schemas/api-users-model-order.yaml"
-    ApiOrdersModelOrderItem:
-      "$ref": "./components/schemas/api-orders-model-order-item.yaml"
-    ApiUsersModelAddress:
-      "$ref": "./components/schemas/api-users-model-address.yaml"
-    ApiOrdersModelPaymentMethod:
-      "$ref": "./components/schemas/api-orders-model-payment-method.yaml"
+    PostsPost:
+      "$ref": "./components/schemas/posts-post.yaml"
+    UsersUser:
+      "$ref": "./components/schemas/users-user.yaml"
+    UsersModelOrder:
+      "$ref": "./components/schemas/users-model-order.yaml"
+    OrdersModelOrderItem:
+      "$ref": "./components/schemas/orders-model-order-item.yaml"
+    UsersModelAddress:
+      "$ref": "./components/schemas/users-model-address.yaml"
+    OrdersModelPaymentMethod:
+      "$ref": "./components/schemas/orders-model-payment-method.yaml"

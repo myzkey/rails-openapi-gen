@@ -1,8 +1,8 @@
 ---
-"/api/posts":
+"/posts":
   get:
     summary: Index Api/post
-    operationId: api_posts_index
+    operationId: posts_index
     tags:
     - Api
     responses:

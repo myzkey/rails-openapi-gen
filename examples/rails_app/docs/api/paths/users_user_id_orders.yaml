@@ -1,8 +1,8 @@
 ---
-"/api/users/{user_id}/orders":
+"/users/{user_id}/orders":
   get:
     summary: Index Api/users/order
-    operationId: api_users_orders_index
+    operationId: users_orders_index
     tags:
     - Api
     parameters:
@@ -22,6 +22,6 @@
                 type: object
                 properties:
                   order:
-                    "$ref": "#/components/schemas/ApiUsersModelOrder"
+                    "$ref": "#/components/schemas/UsersModelOrder"
                 required:
                 - order

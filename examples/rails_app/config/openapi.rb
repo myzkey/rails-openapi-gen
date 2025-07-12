@@ -54,4 +54,10 @@ RailsOpenapiGen.configure do |config|
     filename: "openapi.yaml",
     split_files: true
   }
+
+  # View paths configuration
+  config.view_paths = {
+    api_prefix: "api",            # Remove /api prefix from paths and operationIds
+    component_prefix: "api"       # Remove "Api" prefix from component names
+  }
 end

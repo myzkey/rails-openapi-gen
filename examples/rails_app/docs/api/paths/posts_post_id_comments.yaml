@@ -1,8 +1,8 @@
 ---
-"/api/posts/{post_id}/comments":
+"/posts/{post_id}/comments":
   get:
     summary: Index Api/comment
-    operationId: api_comments_index
+    operationId: comments_index
     tags:
     - Api
     parameters:

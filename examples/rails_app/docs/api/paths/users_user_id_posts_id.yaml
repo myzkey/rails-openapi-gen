@@ -1,11 +1,16 @@
 ---
-"/api/posts/{id}":
+"/users/{user_id}/posts/{id}":
   get:
     summary: Show Api/post
-    operationId: api_posts_show
+    operationId: posts_show
     tags:
     - Api
     parameters:
+    - name: user_id
+      in: path
+      required: true
+      schema:
+        type: string
     - name: id
       in: path
       required: true
@@ -20,12 +25,12 @@
               type: object
               properties:
                 post:
-                  "$ref": "#/components/schemas/ApiPostsPost"
+                  "$ref": "#/components/schemas/PostsPost"
                 author:
                   type: object
                   properties:
                     user:
-                      "$ref": "#/components/schemas/ApiUsersUser"
+                      "$ref": "#/components/schemas/UsersUser"
                   required:
                   - user
                 tags:

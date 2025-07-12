@@ -2,7 +2,7 @@
 
 module RailsOpenapiGen
   class Configuration
-    attr_accessor :openapi_version, :info, :servers, :route_patterns, :output
+    attr_accessor :openapi_version, :info, :servers, :route_patterns, :output, :view_paths
 
     # Initializes configuration with default values
     def initialize
@@ -26,6 +26,10 @@ module RailsOpenapiGen
         directory: "openapi",
         filename: "openapi.yaml",
         split_files: true
+      }
+      @view_paths = {
+        api_prefix: nil,         # No API path prefix removal by default
+        component_prefix: nil    # No component name prefix removal by default
       }
     end
 
@@ -103,6 +107,51 @@ module RailsOpenapiGen
       !excluded
     end
 
+    # Removes API prefix from path if configured
+    # @param path [String] Original route path
+    # @return [String] Path with prefix removed
+    def remove_api_prefix(path)
+      # Ensure @view_paths is properly initialized
+      @view_paths ||= { api_prefix: nil }
+      
+      api_prefix = @view_paths[:api_prefix]
+      return path unless api_prefix
+      
+      # Normalize the prefix (ensure it starts and ends properly)
+      normalized_prefix = "/#{api_prefix}".gsub(/\/+/, '/').chomp('/')
+      
+      # Remove the prefix if the path starts with it
+      if path.start_with?(normalized_prefix)
+        remaining_path = path[normalized_prefix.length..-1]
+        # Ensure the result starts with / or is empty
+        remaining_path.start_with?('/') ? remaining_path : "/#{remaining_path}"
+      else
+        path
+      end
+    end
+
+    # Removes component prefix from component name if configured
+    # @param component_name [String] Original component name (e.g., "ApiPostsPost")
+    # @return [String] Component name with prefix removed (e.g., "PostsPost")
+    def remove_component_prefix(component_name)
+      # Ensure @view_paths is properly initialized
+      @view_paths ||= { component_prefix: nil }
+      
+      component_prefix = @view_paths[:component_prefix]
+      return component_name unless component_prefix
+      
+      # Convert to PascalCase for matching
+      normalized_prefix = component_prefix.split(/[\/\-_]/).map(&:capitalize).join('')
+      
+      # Remove the prefix if the component name starts with it
+      if component_name.start_with?(normalized_prefix)
+        remaining_name = component_name[normalized_prefix.length..-1]
+        remaining_name.empty? ? component_name : remaining_name
+      else
+        component_name
+      end
+    end
+
     private
 
     # Find configuration file in Rails application
@@ -173,6 +222,8 @@ module RailsOpenapiGen
           @route_patterns[:exclude] = Array(patterns[:exclude]).map { |p| Regexp.new(p) }
         when 'output'
           @output = symbolize_keys(value)
+        when 'view_paths'
+          @view_paths = symbolize_keys(value)
         end
       end
       

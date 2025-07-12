@@ -41,9 +41,12 @@ module RailsOpenapiGen::Processors
     # @param node [RailsOpenapiGen::AstNodes::PropertyNode] Property node
     # @return [Hash] Property schema
     def visit_property(node)
-      # If this is a component reference, return a $ref
+      # If this is a component reference, return a $ref with prefix removed
       if node.is_component_ref && node.component_name
-        return { '$ref' => "#/components/schemas/#{node.component_name}" }
+        # Remove component prefix from schema name in $ref
+        config = RailsOpenapiGen.configuration
+        schema_name_without_prefix = config.remove_component_prefix(node.component_name)
+        return { '$ref' => "#/components/schemas/#{schema_name_without_prefix}" }
       end
       
       schema = build_basic_schema(node)

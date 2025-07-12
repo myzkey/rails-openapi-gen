@@ -1,8 +1,8 @@
 ---
-"/api/orders/{id}":
+"/orders/{id}":
   get:
     summary: Show Api/order
-    operationId: api_orders_show
+    operationId: orders_show
     tags:
     - Api
     parameters:
@@ -38,7 +38,7 @@
                         type: object
                         properties:
                           order_item:
-                            "$ref": "#/components/schemas/ApiOrdersModelOrderItem"
+                            "$ref": "#/components/schemas/OrdersModelOrderItem"
                         required:
                         - order_item
                   required:
@@ -47,14 +47,14 @@
                   type: object
                   properties:
                     address:
-                      "$ref": "#/components/schemas/ApiUsersModelAddress"
+                      "$ref": "#/components/schemas/UsersModelAddress"
                   required:
                   - address
                 payment_method:
                   type: object
                   properties:
                     payment_method:
-                      "$ref": "#/components/schemas/ApiOrdersModelPaymentMethod"
+                      "$ref": "#/components/schemas/OrdersModelPaymentMethod"
                   required:
                   - payment_method
               required:
