@@ -55,6 +55,9 @@ module RailsOpenapiGen::AstNodes
     # Check if the property has a specific format
     # @return [Boolean] True if property has format specification
     def has_format?
+      # Auto-detect format from invalid types that were converted
+      return true if auto_format_from_invalid_type
+      
       @format && !@format.empty?
     end
 
@@ -67,7 +70,30 @@ module RailsOpenapiGen::AstNodes
     # Get OpenAPI type, defaulting to string if not specified
     # @return [String] OpenAPI type
     def openapi_type
-      @type || 'string'
+      # Handle common invalid types and auto-correct them
+      case @type
+      when 'date-time', 'datetime'
+        # date-time is not a valid OpenAPI type, should be string with format
+        'string'
+      when 'date'
+        # date is not a valid OpenAPI type, should be string with format
+        'string'
+      when 'time'
+        # time is not a valid OpenAPI type, should be string with format
+        'string'
+      else
+        @type || 'string'
+      end
+    end
+
+    # Get format for the property, including auto-detected formats
+    # @return [String, nil] Format specification
+    def format
+      # Auto-detect format from invalid types that were converted
+      auto_format = auto_format_from_invalid_type
+      return auto_format if auto_format
+      
+      @format
     end
 
     # Get items specification for arrays
@@ -83,7 +109,7 @@ module RailsOpenapiGen::AstNodes
       schema = { 'type' => openapi_type }
       schema['description'] = @description if @description
       schema['enum'] = @enum if has_enum?
-      schema['format'] = @format if has_format?
+      schema['format'] = format if has_format?
       schema['example'] = @example if has_example?
       schema['items'] = array_items if @type == 'array' && array_items
       schema
@@ -139,6 +165,23 @@ module RailsOpenapiGen::AstNodes
         format: attributes.fetch(:format, @format),
         example: attributes.fetch(:example, @example)
       )
+    end
+
+    private
+
+    # Auto-detect format from invalid types that were converted to string
+    # @return [String, nil] Format specification
+    def auto_format_from_invalid_type
+      case @type
+      when 'date-time', 'datetime'
+        'date-time'
+      when 'date'
+        'date'
+      when 'time'
+        'time'
+      else
+        nil
+      end
     end
   end
 end

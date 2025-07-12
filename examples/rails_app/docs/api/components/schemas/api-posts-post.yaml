@@ -16,9 +16,11 @@ properties:
   created_at:
     type: string
     description: Post creation timestamp
+    format: date-time
   updated_at:
     type: string
     description: Last update timestamp
+    format: date-time
 required:
 - id
 - title

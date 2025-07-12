@@ -35,10 +35,11 @@
                     created_at:
                       type: string
                       description: Post creation timestamp
+                      format: date-time
                     status:
                       type: string
                       description: Post status
-                      :enum:
+                      enum:
                       - active
                       - inactive
                   required:
@@ -58,6 +59,7 @@
                     fetched_at:
                       type: string
                       description: When the data was fetched
+                      format: date-time
                     template_used:
                       type: string
                       description: Template used for rendering

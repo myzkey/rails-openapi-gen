@@ -2,6 +2,7 @@
 
 require "yaml"
 require "fileutils"
+require_relative "../processors/component_schema_processor"
 
 module RailsOpenapiGen
   module Generators
@@ -257,6 +258,15 @@ module RailsOpenapiGen
         str.end_with?('s') ? str[0..-2] : str
       end
 
+      # Convert PascalCase/camelCase string to kebab-case
+      # @param string [String] String to convert
+      # @return [String] kebab-case string
+      def to_kebab_case(string)
+        string.to_s
+              .gsub(/([a-z\d])([A-Z])/, '\1-\2')  # Insert dash before capital letters
+              .downcase                           # Convert to lowercase
+      end
+
       # Builds OpenAPI parameter objects from route and parameter data
       # @param route [Hash] Route information
       # @param parameters [Hash] Parameter definitions
@@ -371,11 +381,12 @@ module RailsOpenapiGen
         }
 
         @components.each_key do |component_name|
-          puts "🔗 Creating reference for component: #{component_name}" if ENV['RAILS_OPENAPI_DEBUG']
+          kebab_filename = to_kebab_case(component_name)
+          puts "🔗 Creating reference for component: #{component_name} -> #{kebab_filename}.yaml" if ENV['RAILS_OPENAPI_DEBUG']
           
-          # Create $ref to external component file
+          # Create $ref to external component file (using kebab-case filename)
           components["schemas"][component_name] = {
-            "$ref" => "./components/schemas/#{component_name}.yaml"
+            "$ref" => "./components/schemas/#{kebab_filename}.yaml"
           }
         end
 
@@ -388,16 +399,17 @@ module RailsOpenapiGen
         return unless @components && @components.any?
         
         @components.each do |component_name, ast_node|
-          puts "📝 Writing component file: #{component_name}.yaml" if ENV['RAILS_OPENAPI_DEBUG']
+          kebab_filename = to_kebab_case(component_name)
+          puts "📝 Writing component file: #{kebab_filename}.yaml" if ENV['RAILS_OPENAPI_DEBUG']
           
-          # Convert AST node to OpenAPI schema
-          schema = Processors::AstToSchemaProcessor.new.process_to_schema(ast_node)
+          # Convert AST node to OpenAPI schema (with inline expansion for components)
+          schema = Processors::ComponentSchemaProcessor.new.process_to_schema(ast_node)
           
           # Write to individual YAML file
-          file_path = File.join(@base_path, "components", "schemas", "#{component_name}.yaml")
+          file_path = File.join(@base_path, "components", "schemas", "#{kebab_filename}.yaml")
           File.write(file_path, schema.to_yaml)
           
-          puts "✅ Component file written: #{component_name}.yaml" if ENV['RAILS_OPENAPI_DEBUG']
+          puts "✅ Component file written: #{kebab_filename}.yaml" if ENV['RAILS_OPENAPI_DEBUG']
         end
       end
     end

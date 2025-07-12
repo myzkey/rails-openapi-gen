@@ -50,17 +50,17 @@ module RailsOpenapiGen::Processors
       
       # Add enum if specified
       if node.comment_data&.has_enum?
-        schema[:enum] = node.comment_data.enum
+        schema['enum'] = node.comment_data.enum
       end
       
       # Add format if specified
       if node.comment_data&.has_format?
-        schema[:format] = node.comment_data.format
+        schema['format'] = node.comment_data.format
       end
       
       # Add example if specified
       if node.comment_data&.has_example?
-        schema[:example] = node.comment_data.example
+        schema['example'] = node.comment_data.example
       end
       
       schema

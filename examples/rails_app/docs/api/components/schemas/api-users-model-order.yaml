@@ -20,7 +20,8 @@ properties:
           type: object
           properties:
             order_item:
-              "$ref": "#/components/schemas/ApiOrdersModelOrderItem"
+              type: object
+              description: Inline expanded content from ApiOrdersModelOrderItem
           required:
           - order_item
     required:
@@ -29,14 +30,16 @@ properties:
     type: object
     properties:
       address:
-        "$ref": "#/components/schemas/ApiUsersModelAddress"
+        type: object
+        description: Inline expanded content from ApiUsersModelAddress
     required:
     - address
   payment_method:
     type: object
     properties:
       payment_method:
-        "$ref": "#/components/schemas/ApiOrdersModelPaymentMethod"
+        type: object
+        description: Inline expanded content from ApiOrdersModelPaymentMethod
     required:
     - payment_method
 required:

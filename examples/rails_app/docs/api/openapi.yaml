@@ -235,10 +235,11 @@ paths:
                       created_at:
                         type: string
                         description: Post creation timestamp
+                        format: date-time
                       status:
                         type: string
                         description: Post status
-                        :enum:
+                        enum:
                         - active
                         - inactive
                     required:
@@ -258,6 +259,7 @@ paths:
                       fetched_at:
                         type: string
                         description: When the data was fetched
+                        format: date-time
                       template_used:
                         type: string
                         description: Template used for rendering
@@ -527,14 +529,14 @@ paths:
 components:
   schemas:
     ApiPostsPost:
-      "$ref": "./components/schemas/ApiPostsPost.yaml"
+      "$ref": "./components/schemas/api-posts-post.yaml"
     ApiUsersUser:
-      "$ref": "./components/schemas/ApiUsersUser.yaml"
+      "$ref": "./components/schemas/api-users-user.yaml"
     ApiUsersModelOrder:
-      "$ref": "./components/schemas/ApiUsersModelOrder.yaml"
+      "$ref": "./components/schemas/api-users-model-order.yaml"
     ApiOrdersModelOrderItem:
-      "$ref": "./components/schemas/ApiOrdersModelOrderItem.yaml"
+      "$ref": "./components/schemas/api-orders-model-order-item.yaml"
     ApiUsersModelAddress:
-      "$ref": "./components/schemas/ApiUsersModelAddress.yaml"
+      "$ref": "./components/schemas/api-users-model-address.yaml"
     ApiOrdersModelPaymentMethod:
-      "$ref": "./components/schemas/ApiOrdersModelPaymentMethod.yaml"
+      "$ref": "./components/schemas/api-orders-model-payment-method.yaml"
