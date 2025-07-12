@@ -38,8 +38,8 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::BaseDetector d
 
     context 'with explicit json receiver' do
       let(:json_receiver) do
-        # Creates a node representing "json" method call
-        Parser::CurrentRuby.parse('json').children.first
+        # Mock a node representing "json" method call
+        double('json_receiver', type: :send, children: [nil, :json])
       end
 
       it 'returns true for json receiver' do
@@ -49,10 +49,8 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::BaseDetector d
 
     context 'with other receivers' do
       let(:other_receiver) do
-        # Creates a node representing "object.method" call
-        # The receiver would be the 'object' part
-        ast = Parser::CurrentRuby.parse('object.method')
-        ast.children[0] # This is s(:send, nil, :object)
+        # Mock a node representing "object" part of "object.method" call
+        double('other_receiver', type: :send, children: [nil, :object])
       end
 
       it 'returns false for non-json receivers' do
@@ -62,10 +60,10 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::BaseDetector d
 
     context 'with nested json calls' do
       let(:nested_json) do
-        # Creates a node representing "json.foo.bar" where we're checking the receiver of 'bar'
-        # which would be 'json.foo'
-        ast = Parser::CurrentRuby.parse('json.foo.bar')
-        ast.children[0] # This is s(:send, s(:send, nil, :json), :foo)
+        # Mock a node representing "json.foo" part of "json.foo.bar" call
+        # This is the receiver of the 'bar' method
+        json_receiver = double('json_receiver', type: :send, children: [nil, :json])
+        double('nested_json', type: :send, children: [json_receiver, :foo])
       end
 
       it 'returns false for nested calls (they should be handled by parent)' do
@@ -134,8 +132,16 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::BaseDetector d
   describe '.args_contain_hash_with_keys?' do
     context 'with hash argument containing target keys' do
       let(:hash_arg) do
-        # Creates a node representing { key: "value", other: "test" }
-        Parser::CurrentRuby.parse('{ key: "value", other: "test" }')
+        # Mock a node representing { key: "value", other: "test" }
+        key_key = double('key_key', type: :sym, children: [:key])
+        key_value = double('key_value', type: :str, children: ['value'])
+        key_pair = double('key_pair', type: :pair, children: [key_key, key_value])
+        
+        other_key = double('other_key', type: :sym, children: [:other])
+        other_value = double('other_value', type: :str, children: ['test'])
+        other_pair = double('other_pair', type: :pair, children: [other_key, other_value])
+        
+        double('hash', type: :hash, children: [key_pair, other_pair])
       end
 
       it 'returns true when hash contains any of the target keys' do
@@ -150,8 +156,8 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::BaseDetector d
     end
 
     context 'with non-hash arguments' do
-      let(:string_arg) { Parser::CurrentRuby.parse('"test"') }
-      let(:symbol_arg) { Parser::CurrentRuby.parse(':test') }
+      let(:string_arg) { double('string', type: :str, children: ['test']) }
+      let(:symbol_arg) { double('symbol', type: :sym, children: [:test]) }
 
       it 'returns false for non-hash arguments' do
         result = described_class.send(:args_contain_hash_with_keys?, [string_arg, symbol_arg], [:any])
@@ -160,8 +166,13 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::BaseDetector d
     end
 
     context 'with mixed arguments' do
-      let(:hash_arg) { Parser::CurrentRuby.parse('{ target: "value" }') }
-      let(:string_arg) { Parser::CurrentRuby.parse('"test"') }
+      let(:hash_arg) do
+        target_key = double('target_key', type: :sym, children: [:target])
+        target_value = double('target_value', type: :str, children: ['value'])
+        target_pair = double('target_pair', type: :pair, children: [target_key, target_value])
+        double('hash', type: :hash, children: [target_pair])
+      end
+      let(:string_arg) { double('string', type: :str, children: ['test']) }
 
       it 'finds hash among mixed arguments' do
         result = described_class.send(:args_contain_hash_with_keys?, [string_arg, hash_arg], [:target])
@@ -178,8 +189,11 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::BaseDetector d
 
     context 'with hash having string keys' do
       let(:string_key_hash) do
-        # Creates a node representing { "key" => "value" }
-        Parser::CurrentRuby.parse('{ "key" => "value" }').children.first
+        # Mock a node representing { "key" => "value" }
+        string_key = double('string_key', type: :str, children: ['key'])
+        string_value = double('string_value', type: :str, children: ['value'])
+        string_pair = double('string_pair', type: :pair, children: [string_key, string_value])
+        double('hash', type: :hash, children: [string_pair])
       end
 
       it 'does not match string keys (only symbols)' do
@@ -190,8 +204,24 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::BaseDetector d
 
     context 'with complex hash structures' do
       let(:complex_hash) do
-        # Creates a node representing { a: 1, b: { nested: true }, c: :symbol }
-        Parser::CurrentRuby.parse('{ a: 1, b: { nested: true }, c: :symbol }')
+        # Mock a node representing { a: 1, b: { nested: true }, c: :symbol }
+        a_key = double('a_key', type: :sym, children: [:a])
+        a_value = double('a_value', type: :int, children: [1])
+        a_pair = double('a_pair', type: :pair, children: [a_key, a_value])
+        
+        nested_key = double('nested_key', type: :sym, children: [:nested])
+        nested_value = double('nested_value', type: :true, children: [true])
+        nested_pair = double('nested_pair', type: :pair, children: [nested_key, nested_value])
+        nested_hash = double('nested_hash', type: :hash, children: [nested_pair])
+        
+        b_key = double('b_key', type: :sym, children: [:b])
+        b_pair = double('b_pair', type: :pair, children: [b_key, nested_hash])
+        
+        c_key = double('c_key', type: :sym, children: [:c])
+        c_value = double('c_value', type: :sym, children: [:symbol])
+        c_pair = double('c_pair', type: :pair, children: [c_key, c_value])
+        
+        double('hash', type: :hash, children: [a_pair, b_pair, c_pair])
       end
 
       it 'matches top-level keys only' do
@@ -208,7 +238,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::BaseDetector d
 
   describe '.extract_string_value' do
     context 'with string node' do
-      let(:string_node) { Parser::CurrentRuby.parse('"test string"') }
+      let(:string_node) { double('string', type: :str, children: ['test string']) }
 
       it 'extracts string value' do
         result = described_class.send(:extract_string_value, string_node)
@@ -217,7 +247,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::BaseDetector d
     end
 
     context 'with symbol node' do
-      let(:symbol_node) { Parser::CurrentRuby.parse(':test_symbol') }
+      let(:symbol_node) { double('symbol', type: :sym, children: [:test_symbol]) }
 
       it 'extracts symbol as string' do
         result = described_class.send(:extract_string_value, symbol_node)
@@ -226,8 +256,8 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::BaseDetector d
     end
 
     context 'with other node types' do
-      let(:integer_node) { Parser::CurrentRuby.parse('42') }
-      let(:boolean_node) { Parser::CurrentRuby.parse('true') }
+      let(:integer_node) { double('integer', type: :int, children: [42]) }
+      let(:boolean_node) { double('boolean', type: :true, children: [true]) }
 
       it 'returns nil for non-string/symbol nodes' do
         expect(described_class.send(:extract_string_value, integer_node)).to be_nil
@@ -243,7 +273,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::BaseDetector d
     end
 
     context 'with empty string' do
-      let(:empty_string_node) { Parser::CurrentRuby.parse('""') }
+      let(:empty_string_node) { double('empty_string', type: :str, children: ['']) }
 
       it 'extracts empty string' do
         result = described_class.send(:extract_string_value, empty_string_node)
@@ -254,49 +284,49 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::BaseDetector d
 
   describe '.literal_node?' do
     it 'returns true for string literals' do
-      node = Parser::CurrentRuby.parse('"test"')
+      node = double('string', type: :str, children: ['test'])
       expect(described_class.send(:literal_node?, node)).to be true
     end
 
     it 'returns true for integer literals' do
-      node = Parser::CurrentRuby.parse('42')
+      node = double('integer', type: :int, children: [42])
       expect(described_class.send(:literal_node?, node)).to be true
     end
 
     it 'returns true for float literals' do
-      node = Parser::CurrentRuby.parse('3.14')
+      node = double('float', type: :float, children: [3.14])
       expect(described_class.send(:literal_node?, node)).to be true
     end
 
     it 'returns true for boolean literals' do
-      true_node = Parser::CurrentRuby.parse('true')
-      false_node = Parser::CurrentRuby.parse('false')
+      true_node = double('true', type: :true, children: [true])
+      false_node = double('false', type: :false, children: [false])
       expect(described_class.send(:literal_node?, true_node)).to be true
       expect(described_class.send(:literal_node?, false_node)).to be true
     end
 
     it 'returns true for nil literal' do
-      node = Parser::CurrentRuby.parse('nil')
+      node = double('nil', type: :nil, children: [nil])
       expect(described_class.send(:literal_node?, node)).to be true
     end
 
     it 'returns true for symbol literals' do
-      node = Parser::CurrentRuby.parse(':symbol')
+      node = double('symbol', type: :sym, children: [:symbol])
       expect(described_class.send(:literal_node?, node)).to be true
     end
 
     it 'returns false for variable references' do
-      node = Parser::CurrentRuby.parse('variable')
+      node = double('variable', type: :lvar, children: [:variable])
       expect(described_class.send(:literal_node?, node)).to be false
     end
 
     it 'returns false for method calls' do
-      node = Parser::CurrentRuby.parse('method_call')
+      node = double('method_call', type: :send, children: [nil, :method_call])
       expect(described_class.send(:literal_node?, node)).to be false
     end
 
     it 'returns false for complex expressions' do
-      node = Parser::CurrentRuby.parse('1 + 2')
+      node = double('complex', type: :send, children: [double('left', type: :int, children: [1]), :+, double('right', type: :int, children: [2])])
       expect(described_class.send(:literal_node?, node)).to be false
     end
   end
@@ -339,9 +369,9 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::BaseDetector d
   describe 'real-world usage patterns' do
     context 'with typical Jbuilder method calls' do
       it 'correctly identifies json receiver patterns' do
-        # Test common Jbuilder patterns
-        json_call = Parser::CurrentRuby.parse('json.property "value"')
-        receiver = json_call.children.first.children.first
+        # Mock common Jbuilder patterns
+        # For "json.property 'value'", the receiver would be nil (implicit json)
+        receiver = nil
 
         expect(described_class.send(:json_receiver?, receiver)).to be true
       end
@@ -366,10 +396,21 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::BaseDetector d
 
     context 'with hash argument detection' do
       it 'detects render options in arguments' do
-        # Simulates detecting render template: "partial" calls
-        hash_with_template = Parser::CurrentRuby.parse('{ template: "users/show" }')
-        hash_with_partial = Parser::CurrentRuby.parse('{ partial: "user" }')
-        other_hash = Parser::CurrentRuby.parse('{ format: :json }')
+        # Mock hash nodes to avoid Parser version compatibility issues
+        template_key = double('key', type: :sym, children: [:template])
+        template_value = double('value', type: :str, children: ['users/show'])
+        template_pair = double('pair', type: :pair, children: [template_key, template_value])
+        hash_with_template = double('hash', type: :hash, children: [template_pair])
+
+        partial_key = double('key', type: :sym, children: [:partial])
+        partial_value = double('value', type: :str, children: ['user'])
+        partial_pair = double('pair', type: :pair, children: [partial_key, partial_value])
+        hash_with_partial = double('hash', type: :hash, children: [partial_pair])
+
+        format_key = double('key', type: :sym, children: [:format])
+        format_value = double('value', type: :sym, children: [:json])
+        format_pair = double('pair', type: :pair, children: [format_key, format_value])
+        other_hash = double('hash', type: :hash, children: [format_pair])
 
         render_keys = [:template, :partial]
         

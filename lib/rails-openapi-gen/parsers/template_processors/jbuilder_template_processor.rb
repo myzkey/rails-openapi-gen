@@ -37,7 +37,7 @@ module RailsOpenapiGen::Parsers::TemplateProcessors
       end
 
       def on_send(node)
-        if render_call?(node)
+        if render_call?(node) && @jbuilder_path.nil?
           extract_render_target(node)
         end
         super

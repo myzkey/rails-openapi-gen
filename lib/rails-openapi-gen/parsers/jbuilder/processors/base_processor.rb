@@ -125,14 +125,22 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
 
           # Parses a partial file to extract properties for nested objects
           # @param partial_path [String] Path to partial file
-          # @return [Array<Hash>] Array of property definitions
+          # @return [Array] Array of property AST nodes
           def parse_partial_for_nested_object(partial_path)
             # Create a new parser to parse the partial independently
             partial_parser = JbuilderParser.new(partial_path)
             result = partial_parser.parse
-            puts "🔍 DEBUG: parse_partial_for_nested_object returned #{result[:properties].size} properties" if ENV['RAILS_OPENAPI_DEBUG']
-            puts "🔍 DEBUG: first property type: #{result[:properties].first.class}" if ENV['RAILS_OPENAPI_DEBUG'] && result[:properties].any?
-            result[:properties]
+            
+            # The new AST-based parser returns AST nodes directly, not hashes
+            if result&.respond_to?(:children)
+              properties = result.children || []
+              puts "🔍 DEBUG: parse_partial_for_nested_object returned #{properties.size} properties" if ENV['RAILS_OPENAPI_DEBUG']
+              puts "🔍 DEBUG: first property type: #{properties.first.class}" if ENV['RAILS_OPENAPI_DEBUG'] && properties.any?
+              properties
+            else
+              puts "🔍 DEBUG: parse_partial_for_nested_object result is nil or has no children" if ENV['RAILS_OPENAPI_DEBUG']
+              []
+            end
           end
 
           # Adds a property to the properties array

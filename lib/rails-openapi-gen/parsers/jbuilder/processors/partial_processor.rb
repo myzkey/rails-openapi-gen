@@ -13,7 +13,7 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
           def on_send(node)
             receiver, method_name, *args = node.children
 
-            process_partial(args) if CallDetectors::PartialCallDetector.partial_call?(receiver, method_name)
+            process_partial(args) if RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::PartialCallDetector.partial_call?(receiver, method_name)
 
             super
           end

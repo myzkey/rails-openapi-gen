@@ -130,21 +130,30 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::ObjectProcessor d
       # Create a proper mock class for the composite processor
       mock_composite_class = Class.new do
         def initialize(file_path, property_parser)
+          @composite_instance = nil
         end
         
         def process(body)
         end
         
         def properties
-          []
+          @composite_instance&.properties || []
         end
         
         def partials
-          []
+          @composite_instance&.partials || []
+        end
+        
+        def set_instance(instance)
+          @composite_instance = instance
         end
       end
       
+      # Create the instance that can be configured
+      @mock_composite_instance = mock_composite_class.new(nil, nil)
+      
       allow(described_class).to receive(:composite_processor_class).and_return(mock_composite_class)
+      allow(mock_composite_class).to receive(:new).and_return(@mock_composite_instance)
       allow(processor).to receive(:add_property)
       allow(processor).to receive(:is_array_root_property).and_return(false)
       
@@ -172,7 +181,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::ObjectProcessor d
 
     it 'creates object node with nested properties' do
       nested_properties = [{ name: 'nested_prop' }]
-      allow(composite_processor).to receive(:properties).and_return(nested_properties)
+      allow(@mock_composite_instance).to receive(:properties).and_return(nested_properties)
       
       expect(RailsOpenapiGen::AstNodes::PropertyNodeFactory).to receive(:create_object).with(
         property: property_name,
@@ -187,7 +196,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::ObjectProcessor d
       let(:array_root_property) { { property: 'items', is_array_root: true, array_item_properties: [] } }
 
       before do
-        allow(composite_processor).to receive(:properties).and_return([array_root_property])
+        allow(@mock_composite_instance).to receive(:properties).and_return([array_root_property])
         allow(processor).to receive(:is_array_root_property).with(array_root_property).and_return(true)
         allow(processor).to receive(:get_array_item_properties).with(array_root_property).and_return([])
       end
@@ -228,7 +237,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::ObjectProcessor d
       let(:partial_path) { '/test/partials/_profile.json.jbuilder' }
 
       before do
-        allow(composite_processor).to receive(:partials).and_return([partial_path])
+        allow(@mock_composite_instance).to receive(:partials).and_return([partial_path])
         allow(File).to receive(:exist?).with(partial_path).and_return(true)
         allow(processor).to receive(:parse_partial_for_nested_object).with(partial_path).and_return([{ name: 'partial_prop' }])
       end
@@ -424,21 +433,15 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::ObjectProcessor d
     it 'stores nested objects in @nested_objects' do
       nested_properties = [{ name: 'nested_prop' }]
       
+      # Capture properties outside the closure
+      props = nested_properties
+      
       # Create a proper mock class for the composite processor
       mock_composite_class = Class.new do
-        def initialize(file_path, property_parser)
-        end
-        
-        def process(body)
-        end
-        
-        def properties
-          nested_properties
-        end
-        
-        def partials
-          []
-        end
+        define_method(:initialize) { |file_path, property_parser| }
+        define_method(:process) { |body| }
+        define_method(:properties) { props }
+        define_method(:partials) { [] }
       end
       
       allow(described_class).to receive(:composite_processor_class).and_return(mock_composite_class)
@@ -509,7 +512,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::ObjectProcessor d
       args_node = double('args_node', type: :args, children: [])
       node = double('node', children: [send_node, args_node, double('body')])
       
-      expect(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::JsonCallDetector).to receive(:json_property?).with(nil, :profile)
+      expect(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::JsonCallDetector).to receive(:json_property?).with(nil, :profile).and_return(true)
       allow(processor).to receive(:process_nested_object_block)
       
       processor.on_block(node)
@@ -571,21 +574,15 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::ObjectProcessor d
       before do
         allow(processor).to receive(:find_comment_for_node).and_return(nil)
         
+        # Capture properties outside the closure
+        props = [array_prop, string_prop]
+        
         # Create a proper mock class for the composite processor
         mock_composite_class = Class.new do
-          def initialize(file_path, property_parser)
-          end
-          
-          def process(body)
-          end
-          
-          def properties
-            [array_prop, string_prop]
-          end
-          
-          def partials
-            []
-          end
+          define_method(:initialize) { |file_path, property_parser| }
+          define_method(:process) { |body| }
+          define_method(:properties) { props }
+          define_method(:partials) { [] }
         end
         
         allow(described_class).to receive(:composite_processor_class).and_return(mock_composite_class)

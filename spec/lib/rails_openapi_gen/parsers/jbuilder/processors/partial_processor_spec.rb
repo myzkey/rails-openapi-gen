@@ -1,32 +1,9 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
+require 'rails-openapi-gen/parsers/jbuilder/call_detectors/partial_call_detector'
 
-# Mock Parser dependencies before requiring the processor
-module Parser
-  module AST
-    class Processor
-      def initialize; end
-      def process(node); end
-      def process_children(node); end
-    end
-    
-    class Node
-      attr_reader :type, :children, :location
-      
-      def initialize(type, children = [], location = nil)
-        @type = type
-        @children = children
-        @location = location || double('location', line: 1)
-      end
-      
-      # Add updated method for Parser 3.1.3 compatibility
-      def updated(new_type = nil, new_children = nil, new_properties = {})
-        self.class.new(new_type || @type, new_children || @children, @location)
-      end
-    end
-  end
-end
+# Mock definitions are handled by spec/support/parser_ast_mocks.rb
 
 RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PartialProcessor do
   let(:file_path) { '/test/app/views/users/index.json.jbuilder' }
@@ -39,7 +16,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PartialProcessor 
 
   describe '#on_send' do
     let(:receiver) { nil }
-    let(:args) { [] }
+    let(:args) { [double('arg1', type: :str, children: ['test_partial'])] }
     let(:node) { 
       double('node', 
         children: [receiver, method_name, *args],
@@ -51,14 +28,13 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PartialProcessor 
       let(:method_name) { :partial! }
 
       before do
-        # Mock the call detector method through the local alias used in the processor
-        allow(described_class::CallDetectors::PartialCallDetector).to receive(:partial_call?).with(receiver, method_name).and_return(true)
-        allow(processor).to receive(:process_partial)
         # Allow the Parser gem's processor to be called
         allow_any_instance_of(Parser::AST::Processor).to receive(:on_send)
       end
 
       it 'processes partial with args' do
+        # Add a mock expectation that the detector is called
+        expect(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::PartialCallDetector).to receive(:partial_call?).with(receiver, method_name).and_return(true)
         expect(processor).to receive(:process_partial).with(args)
         processor.on_send(node)
       end
@@ -74,7 +50,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PartialProcessor 
 
       before do
         # Mock the call detector to return false for non-partial calls
-        allow(described_class::CallDetectors::PartialCallDetector).to receive(:partial_call?).with(receiver, method_name).and_return(false)
+        allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::PartialCallDetector).to receive(:partial_call?).with(receiver, method_name).and_return(false)
         # Allow the Parser gem's processor to be called
         allow_any_instance_of(Parser::AST::Processor).to receive(:on_send)
       end
@@ -265,16 +241,21 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PartialProcessor 
   end
 
   describe 'integration with call detectors' do
-    it 'uses PartialCallDetector for partial detection' do
-      node = double('node', 
+    let(:node) { 
+      double('node', 
         children: [nil, :partial!, []],
         updated: double('updated_node')
-      )
-      
-      # Test that the detector method is called and that process_partial is called when it returns true
-      expect(described_class::CallDetectors::PartialCallDetector).to receive(:partial_call?).with(nil, :partial!)
-      allow(processor).to receive(:process_partial)
+      ) 
+    }
+
+    before do
       allow_any_instance_of(Parser::AST::Processor).to receive(:on_send)
+    end
+
+    it 'uses PartialCallDetector for partial detection' do
+      # Test that the detector method is called and that process_partial is called when it returns true
+      expect(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::PartialCallDetector).to receive(:partial_call?).with(nil, :partial!).and_return(true)
+      expect(processor).to receive(:process_partial).with([[]])
       
       processor.on_send(node)
     end

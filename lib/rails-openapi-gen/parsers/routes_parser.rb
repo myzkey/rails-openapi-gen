@@ -1,8 +1,16 @@
 # frozen_string_literal: true
 
+require 'active_support/inflector'
+
 module RailsOpenapiGen
   module Parsers
     class RoutesParser
+      # Initialize with optional file existence checker for testability
+      # @param file_checker [#call] Callable that checks if file exists (defaults to File.exist?)
+      def initialize(file_checker: File.method(:exist?))
+        @file_checker = file_checker
+      end
+
       # Parses Rails application routes to extract route information
       # @return [Array<Hash>] Array of route hashes with method, path, controller, action, and name
       def parse
@@ -12,13 +20,30 @@ module RailsOpenapiGen
           next unless route.defaults[:controller] && route.defaults[:action]
           next if route.respond_to?(:internal?) ? route.internal? : route.instance_variable_get(:@internal)
           
-          method = route.verb.is_a?(Array) ? route.verb.first : route.verb
-          path = route.path.spec.to_s.gsub(/\(\.:format\)$/, "")
+          # Skip Rails internal and asset routes
+          controller_name = route.defaults[:controller]
+          next if controller_name.to_s.start_with?('rails/')
+          next if controller_name.to_s == 'assets'
+          
+          # Extract HTTP method from route.verb (which can be a Regexp like /^GET$/)
+          raw_method = route.verb.is_a?(Array) ? route.verb.first : route.verb
+          method = if raw_method.is_a?(Regexp)
+                     raw_method.source.gsub(/[\^\$\(\)\?\-\:mix]/, '')
+                   else
+                     raw_method.to_s
+                   end
+          # Remove format suffix patterns more robustly
+          path = route.path.spec.to_s
+            .gsub(/\(\.:format\)$/, "")              # Standard format pattern
+            .gsub(/\(\.\*format\)$/, "")             # Wildcard format pattern
+            .gsub(/\(\.[\w\|\*]*\)$/, "")            # Complex format patterns like (.json|.xml|.csv)
+            .gsub(/\(\.[^)]*\)$/, "")
           controller = infer_controller_from_route(route)
           action = route.defaults[:action]
           
           routes << {
-            method: method,
+            verb: method,           # Test expects 'verb'
+            method: method,         # Keep for backward compatibility
             path: path,
             controller: controller,
             action: action,
@@ -60,8 +85,13 @@ module RailsOpenapiGen
               if index == 0
                 part  # Keep namespace as-is (e.g., "api")
               elsif index < parts.length - 1
-                # Simple pluralization for common cases
-                part.end_with?('y') ? part[0..-2] + 'ies' : part + 's'
+                # Skip pluralization for version numbers (v1, v2, etc.)
+                if part.match?(/^v\d+$/)
+                  part
+                else
+                  # Use ActiveSupport::Inflector for proper pluralization
+                  part.pluralize
+                end
               else
                 part  # Keep final resource as-is (e.g., "orders")
               end
@@ -70,7 +100,7 @@ module RailsOpenapiGen
             # Check if the nested controller file exists
             nested_controller_path = Rails.root.join("app", "controllers", "#{potential_nested}_controller.rb")
             
-            if File.exist?(nested_controller_path.to_s)
+            if @file_checker.call(nested_controller_path.to_s)
               return potential_nested
             end
           end
