@@ -89,6 +89,26 @@ module RailsOpenapiGen
 
     private
 
+    # Extracts properties from AST node for backward compatibility
+    # @param ast_node [RailsOpenapiGen::AstNodes::BaseNode] AST node
+    # @return [Array<Hash>] Properties in legacy format
+    def extract_properties_from_ast(ast_node)
+      properties = []
+      
+      if ast_node.respond_to?(:properties)
+        ast_node.properties.each do |property|
+          properties << {
+            name: property.property_name,
+            type: property.comment_data&.openapi_type || 'string',
+            description: property.comment_data&.description,
+            required: property.comment_data&.required != false
+          }
+        end
+      end
+      
+      properties
+    end
+
     # Finds Rails route matching OpenAPI path and method
     # @param openapi_path [String] OpenAPI path format (e.g., "/users/{id}")
     # @param method [String] HTTP method
@@ -312,9 +332,11 @@ module RailsOpenapiGen
 
       content = File.read(partial_path)
 
-      # Parse the partial file
-      jbuilder_result = Parsers::JbuilderParser.new(partial_path).parse
-      properties = jbuilder_result[:properties]
+      # Parse the partial file using new AST approach
+      jbuilder_parser = Parsers::JbuilderParser.new(partial_path)
+      ast_node = jbuilder_parser.parse_ast
+      # Convert AST to properties for backward compatibility
+      properties = ast_node ? extract_properties_from_ast(ast_node) : []
 
       # Generate new content with comments
       new_content = generate_commented_jbuilder(content, properties, schema, nil, nil)
@@ -339,9 +361,11 @@ module RailsOpenapiGen
 
       content = File.read(jbuilder_path)
 
-      # Parse the Jbuilder file to understand its structure
-      jbuilder_result = Parsers::JbuilderParser.new(jbuilder_path).parse
-      properties = jbuilder_result[:properties]
+      # Parse the Jbuilder file to understand its structure using new AST approach
+      jbuilder_parser = Parsers::JbuilderParser.new(jbuilder_path)
+      ast_node = jbuilder_parser.parse_ast
+      # Convert AST to properties for backward compatibility
+      properties = ast_node ? extract_properties_from_ast(ast_node) : []
 
       # Get the response schema from the operation
       response_schema = extract_response_schema(operation)

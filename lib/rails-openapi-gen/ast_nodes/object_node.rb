@@ -3,7 +3,9 @@
 module RailsOpenapiGen::AstNodes
   # Represents an object node in Jbuilder template (json.object do...end)
   class ObjectNode < BaseNode
-    attr_reader :property_name, :comment_data, :is_conditional
+    attr_reader :property_name # json.xxx
+    attr_reader :comment_data # @openapi comments
+    attr_reader :is_conditional # if/else
 
     def initialize(property_name:, comment_data: nil, is_conditional: false, parent: nil, metadata: {})
       super(parent: parent, metadata: metadata)
@@ -28,13 +30,41 @@ module RailsOpenapiGen::AstNodes
     # Get required properties for OpenAPI schema
     # @return [Array<String>] Names of required properties
     def required_properties
-      properties.select(&:required?).map(&:property_name)
+      properties.select do |property|
+        if property.respond_to?(:required?)
+          property.required?
+        else
+          # Handle legacy Hash objects
+          property.is_a?(Hash) && property[:required] == true
+        end
+      end.map do |property|
+        if property.respond_to?(:property_name)
+          property.property_name
+        else
+          # Handle legacy Hash objects
+          property[:property_name] || property[:property]
+        end
+      end.compact
     end
 
     # Get optional properties for OpenAPI schema
     # @return [Array<String>] Names of optional properties
     def optional_properties
-      properties.select(&:optional?).map(&:property_name)
+      properties.select do |property|
+        if property.respond_to?(:optional?)
+          property.optional?
+        else
+          # Handle legacy Hash objects
+          property.is_a?(Hash) && property[:required] != true
+        end
+      end.map do |property|
+        if property.respond_to?(:property_name)
+          property.property_name
+        else
+          # Handle legacy Hash objects
+          property[:property_name] || property[:property]
+        end
+      end.compact
     end
 
     # Check if this object is required in OpenAPI schema
@@ -59,7 +89,14 @@ module RailsOpenapiGen::AstNodes
     # @param name [String] Property name to find
     # @return [BaseNode, nil] Property node or nil if not found
     def find_property(name)
-      properties.find { |prop| prop.property_name == name }
+      properties.find do |prop|
+        if prop.respond_to?(:property_name)
+          prop.property_name == name
+        else
+          # Handle legacy Hash objects
+          (prop[:property_name] || prop[:property]) == name
+        end
+      end
     end
 
     # Check if object has any properties
@@ -78,7 +115,7 @@ module RailsOpenapiGen::AstNodes
         required: required?,
         openapi_type: 'object',
         description: description,
-        properties: properties.map(&:to_h),
+        properties: properties.map { |prop| prop.respond_to?(:to_h) ? prop.to_h : prop },
         required_properties: required_properties,
         optional_properties: optional_properties
       ).compact

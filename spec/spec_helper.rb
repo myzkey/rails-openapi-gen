@@ -38,6 +38,13 @@ end
 # Set up Rails constant for tests
 Object.const_set(:Rails, MockRails) unless defined?(Rails)
 
+# Pre-load parser gem to avoid loading issues in specs
+begin
+  require 'parser/current'
+rescue LoadError => e
+  puts "Warning: Could not load parser gem: #{e.message}"
+end
+
 # Now require the main library
 require "rails-openapi-gen"
 

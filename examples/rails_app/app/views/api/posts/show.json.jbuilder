@@ -1,12 +1,12 @@
 # @openapi_operation summary:"Get post details" tags:[Posts] description:"Returns detailed information about a specific post"
 
 # Post basic info using partial
-json.partial! 'posts/post', post: @post
+json.partial! 'api/posts/post', post: @post
 
 # Author info using user partial
 # @openapi author:object
 json.author do
-  json.partial! 'users/user', user: @post.author
+  json.partial! 'api/users/user', user: @post.author
 end
 
 # @openapi tags:array items:string description:"Post tags for categorization"

@@ -62,7 +62,7 @@ RSpec.describe RailsOpenapiGen::Configuration do
     end
   end
 
-  describe "#load_from_file", :skip => "TODO: Implement configuration loading" do
+  describe "#load_from_file" do
     let(:config_file_path) { File.join(Rails.root, "config", "test_openapi.rb") }
 
     before do
@@ -78,8 +78,8 @@ RSpec.describe RailsOpenapiGen::Configuration do
             { url: "https://api.example.com", description: "Production" }
           ]
           config.route_patterns = {
-            include: [/^\/api\/v1\//],
-            exclude: [/\/health/]
+            include: [%r{^/api/v1/}],
+            exclude: [%r{/health}]
           }
           config.output = {
             directory: "custom/path",

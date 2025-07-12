@@ -1,11 +1,10 @@
 ---
 "/api/dashboard":
   get:
-    summary: Get dashboard data
+    summary: Index Api/dashboard
     operationId: api_dashboard_index
     tags:
-    - Dashboard
-    description: Returns dashboard overview with stats and recent activities
+    - Api
     responses:
       '200':
         description: Successful response
@@ -24,43 +23,39 @@
                   type: integer
                   description: Number of active users in last 30 days
                 recent_users:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      id:
-                        type: integer
-                        description: User ID
-                      name:
-                        type: string
-                        description: User name
-                      email:
-                        type: string
-                        description: User email
-                    required:
-                    - id
-                    - name
-                    - email
+                  type: object
                   description: List of recent users
+                  properties:
+                    id:
+                      type: integer
+                      description: User ID
+                    name:
+                      type: string
+                      description: User name
+                    email:
+                      type: string
+                      description: User email
+                  required:
+                  - id
+                  - name
+                  - email
                 recent_posts:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      id:
-                        type: integer
-                        description: Post ID
-                      title:
-                        type: string
-                        description: Post title
-                      created_at:
-                        type: string
-                        description: Post creation date
-                    required:
-                    - id
-                    - title
-                    - created_at
+                  type: object
                   description: List of recent posts
+                  properties:
+                    id:
+                      type: integer
+                      description: Post ID
+                    title:
+                      type: string
+                      description: Post title
+                    created_at:
+                      type: string
+                      description: Post creation date
+                  required:
+                  - id
+                  - title
+                  - created_at
               required:
               - total_users
               - total_posts
@@ -69,7 +64,7 @@
               - recent_posts
 "/api/users/{user_id}/posts":
   get:
-    summary: List all posts
+    summary: Index Api/post
     operationId: api_posts_index
     tags:
     - Api
@@ -105,19 +100,17 @@
                     type: string
                     description: Post creation timestamp in ISO 8601 format
                   tags:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        name:
-                          type: integer
-                          description: Tag unique identifier
-                        color:
-                          type: string
-                          description: Tag color in hex format
-                      required:
-                      - name
-                      - color
+                    type: object
+                    properties:
+                      name:
+                        type: integer
+                        description: Tag unique identifier
+                      color:
+                        type: string
+                        description: Tag color in hex format
+                    required:
+                    - name
+                    - color
                 required:
                 - id
                 - title
@@ -126,7 +119,7 @@
                 - created_at
                 - tags
   post:
-    summary: Create new post
+    summary: Create Api/post
     operationId: api_posts_create
     tags:
     - Api
@@ -159,11 +152,10 @@
               - created_at
 "/api/users/{user_id}/posts/{id}":
   get:
-    summary: Get post details
+    summary: Show Api/post
     operationId: api_posts_show
     tags:
-    - Posts
-    description: Returns detailed information about a specific post
+    - Api
     parameters:
     - name: user_id
       in: path
@@ -183,12 +175,46 @@
             schema:
               type: object
               properties:
+                id:
+                  type: integer
+                  description: Post unique identifier
+                title:
+                  type: string
+                  description: Post title
+                content:
+                  type: string
+                  description: Post content body
+                published:
+                  type: boolean
+                  description: Whether the post is published
+                created_at:
+                  type: string
+                  description: Post creation timestamp
+                updated_at:
+                  type: string
+                  description: Last update timestamp
                 author:
                   type: object
+                  properties:
+                    id:
+                      type: integer
+                      description: User ID
+                    name:
+                      type: string
+                      description: User name
+                    email:
+                      type: string
+                      description: User email
+                    created_at:
+                      type: string
+                      description: User creation timestamp
+                  required:
+                  - id
+                  - name
+                  - email
+                  - created_at
                 tags:
                   type: array
-                  items:
-                    type: string
                   description: Post tags for categorization
                 comments_count:
                   type: integer
@@ -200,38 +226,24 @@
                   type: string
                   description: Publication timestamp
               required:
+              - id
+              - title
+              - content
+              - published
+              - created_at
+              - updated_at
               - author
               - tags
               - comments_count
               - likes_count
-              - published_at
-"/api/users":
+"/api/users/{user_id}/orders":
   get:
-    summary: List users
-    operationId: api_users_index
+    summary: Index Api/users/order
+    operationId: api_users_orders_index
     tags:
-    - Users
-    description: Returns a paginated list of users
-    responses:
-      '200':
-        description: Successful response
-        content:
-          application/json:
-            schema:
-              type: array
-              items:
-                type: object
-                properties: {}
-                required: []
-"/api/users/{id}":
-  get:
-    summary: Get user details
-    operationId: api_users_show
-    tags:
-    - Users
-    description: Returns detailed information about a specific user
+    - Api
     parameters:
-    - name: id
+    - name: user_id
       in: path
       required: true
       schema:
@@ -242,96 +254,108 @@
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                role:
-                  type: string
-                  description: User role in the system
-                  enum:
-                  - admin
-                  - moderator
-                  - user
-                admin_notes:
-                  type: string
-                  description: Admin-only notes about the user
-                profile:
-                  type: object
-                  properties:
-                    bio:
-                      type: string
-                      description: User biography
-                    avatar_url:
-                      type: string
-                      description: URL to user's avatar image
-                    verified:
-                      type: boolean
-                      description: Whether the user's email is verified
-                  description: User profile information (only present if profile exists)
-                posts:
-                  type: array
-                  items:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: object
+                  order_number:
+                    type: integer
+                  total_amount:
+                    type: integer
+                  status:
+                    type: string
+                  placed_at:
+                    type: string
+                  order_items:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                            product_id:
+                              type: integer
+                            quantity:
+                              type: integer
+                            unit_price:
+                              type: integer
+                            total_price:
+                              type: integer
+                          required:
+                          - id
+                          - product_id
+                          - quantity
+                          - unit_price
+                          - total_price
+                    required:
+                    - items
+                  shipping_address:
                     type: object
                     properties:
                       id:
                         type: integer
-                        description: Post ID
-                      title:
+                      street:
                         type: string
-                        description: Post title
-                      published:
-                        type: boolean
-                        description: Publication status
+                      city:
+                        type: string
+                      state:
+                        type: string
+                      zip_code:
+                        type: string
+                      country:
+                        type: string
                     required:
                     - id
-                    - title
-                    - published
-                metadata:
-                  type: object
-                  properties:
-                    last_login:
-                      type: string
-                      description: Last login timestamp
-                    login_count:
-                      type: integer
-                      description: Total login count
-                    account_type:
-                      type: string
-                      description: Account tier
-                      enum:
-                      - free
-                      - premium
-                      - enterprise
-                    premium_features:
-                      type: array
-                      items:
+                    - street
+                    - city
+                    - state
+                    - zip_code
+                    - country
+                  payment_method:
+                    type: object
+                    properties:
+                      id:
+                        type: object
+                      type:
                         type: string
-                      description: List of premium features enabled
-                    billing_info:
-                      type: object
-                      properties:
-                        plan:
-                          type: string
-                          description: Current billing plan
-                        next_billing_date:
-                          type: string
-                          description: Next billing date
-                      description: Billing information for premium users
-                  required:
-                  - last_login
-                  - login_count
-                  - account_type
-              required:
-              - role
-              - posts
-              - metadata
+                      brand:
+                        type: string
+                      last4:
+                        type: string
+                      expiry:
+                        type: string
+                      holder_name:
+                        type: string
+                      provider:
+                        type: string
+                    required:
+                    - id
+                    - type
+                    - brand
+                    - last4
+                    - expiry
+                    - holder_name
+                    - provider
+                required:
+                - id
+                - order_number
+                - total_amount
+                - status
+                - placed_at
+                - order_items
+                - shipping_address
+                - payment_method
 "/api/posts/{post_id}/comments":
   get:
-    summary: List comments
+    summary: Index Api/comment
     operationId: api_comments_index
     tags:
-    - Comments
-    - Public
-    description: Returns all comments for a specific post
+    - Api
     parameters:
     - name: post_id
       in: path
@@ -369,59 +393,12 @@
                 - author
                 - created_at
                 - likes
-"/api/posts/featured":
-  get:
-    summary: Get featured posts
-    operationId: api_posts_featured
-    tags:
-    - Posts
-    description: Returns a list of featured posts using explicit template rendering
-    responses:
-      '200':
-        description: Successful response
-        content:
-          application/json:
-            schema:
-              type: array
-              items:
-                type: object
-                properties:
-                  id:
-                    type: integer
-                    description: Post ID
-                  title:
-                    type: string
-                    description: Post title
-                  content:
-                    type: string
-                    description: Post content
-                  published:
-                    type: boolean
-                    description: Whether the post is published
-                  featured:
-                    type: boolean
-                    description: Whether the post is featured
-                  created_at:
-                    type: string
-                    description: Post creation timestamp
-                  excerpt:
-                    type: string
-                    description: Post excerpt
-                required:
-                - id
-                - title
-                - content
-                - published
-                - featured
-                - created_at
-                - excerpt
 "/api/posts/archive":
   get:
-    summary: Get archived posts
+    summary: Archive Api/post
     operationId: api_posts_archive
     tags:
-    - Posts
-    description: Returns archived posts using shared template rendering
+    - Api
     responses:
       '200':
         description: Successful response
@@ -431,45 +408,43 @@
               type: object
               properties:
                 posts:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      id:
-                        type: integer
-                        description: Post ID
-                      title:
-                        type: string
-                        description: Post title
-                      content:
-                        type: string
-                        description: Post content
-                      published:
-                        type: boolean
-                        description: Whether the post is published
-                      archived:
-                        type: boolean
-                        description: Whether the post is archived
-                      created_at:
-                        type: string
-                        description: Post creation timestamp
-                      status:
-                        type: string
-                        description: Post status
-                        enum:
-                        - active
-                        - inactive
-                    required:
-                    - id
-                    - title
-                    - content
-                    - published
-                    - archived
-                    - created_at
-                    - status
+                  type: object
                   description: List of posts
+                  properties:
+                    id:
+                      type: integer
+                      description: Post ID
+                    title:
+                      type: string
+                      description: Post title
+                    content:
+                      type: string
+                      description: Post content
+                    published:
+                      type: boolean
+                      description: Whether the post is published
+                    archived:
+                      type: boolean
+                      description: Whether the post is archived
+                    created_at:
+                      type: string
+                      description: Post creation timestamp
+                    status:
+                      type: string
+                      description: Post status
+                      :enum:
+                      - active
+                      - inactive
+                  required:
+                  - id
+                  - title
+                  - content
+                  - published
+                  - created_at
+                  - status
                 metadata:
                   type: object
+                  description: Response metadata
                   properties:
                     total:
                       type: integer
@@ -484,13 +459,12 @@
                   - total
                   - fetched_at
                   - template_used
-                  description: Response metadata
               required:
               - posts
               - metadata
 "/api/posts":
   get:
-    summary: List all posts
+    summary: Index Api/post
     operationId: api_posts_index
     tags:
     - Api
@@ -520,19 +494,17 @@
                     type: string
                     description: Post creation timestamp in ISO 8601 format
                   tags:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        name:
-                          type: integer
-                          description: Tag unique identifier
-                        color:
-                          type: string
-                          description: Tag color in hex format
-                      required:
-                      - name
-                      - color
+                    type: object
+                    properties:
+                      name:
+                        type: integer
+                        description: Tag unique identifier
+                      color:
+                        type: string
+                        description: Tag color in hex format
+                    required:
+                    - name
+                    - color
                 required:
                 - id
                 - title
@@ -542,11 +514,10 @@
                 - tags
 "/api/posts/{id}":
   get:
-    summary: Get post details
+    summary: Show Api/post
     operationId: api_posts_show
     tags:
-    - Posts
-    description: Returns detailed information about a specific post
+    - Api
     parameters:
     - name: id
       in: path
@@ -561,12 +532,46 @@
             schema:
               type: object
               properties:
+                id:
+                  type: integer
+                  description: Post unique identifier
+                title:
+                  type: string
+                  description: Post title
+                content:
+                  type: string
+                  description: Post content body
+                published:
+                  type: boolean
+                  description: Whether the post is published
+                created_at:
+                  type: string
+                  description: Post creation timestamp
+                updated_at:
+                  type: string
+                  description: Last update timestamp
                 author:
                   type: object
+                  properties:
+                    id:
+                      type: integer
+                      description: User ID
+                    name:
+                      type: string
+                      description: User name
+                    email:
+                      type: string
+                      description: User email
+                    created_at:
+                      type: string
+                      description: User creation timestamp
+                  required:
+                  - id
+                  - name
+                  - email
+                  - created_at
                 tags:
                   type: array
-                  items:
-                    type: string
                   description: Post tags for categorization
                 comments_count:
                   type: integer
@@ -578,8 +583,125 @@
                   type: string
                   description: Publication timestamp
               required:
+              - id
+              - title
+              - content
+              - published
+              - created_at
+              - updated_at
               - author
               - tags
               - comments_count
               - likes_count
-              - published_at
+"/api/orders/{id}":
+  get:
+    summary: Show Api/order
+    operationId: api_orders_show
+    tags:
+    - Api
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: object
+                order_number:
+                  type: integer
+                total_amount:
+                  type: integer
+                status:
+                  type: string
+                placed_at:
+                  type: string
+                order_items:
+                  type: object
+                  properties:
+                    items:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          product_id:
+                            type: integer
+                          quantity:
+                            type: integer
+                          unit_price:
+                            type: integer
+                          total_price:
+                            type: integer
+                        required:
+                        - id
+                        - product_id
+                        - quantity
+                        - unit_price
+                        - total_price
+                  required:
+                  - items
+                shipping_address:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    street:
+                      type: string
+                    city:
+                      type: string
+                    state:
+                      type: string
+                    zip_code:
+                      type: string
+                    country:
+                      type: string
+                  required:
+                  - id
+                  - street
+                  - city
+                  - state
+                  - zip_code
+                  - country
+                payment_method:
+                  type: object
+                  properties:
+                    id:
+                      type: object
+                    type:
+                      type: string
+                    brand:
+                      type: string
+                    last4:
+                      type: string
+                    expiry:
+                      type: string
+                    holder_name:
+                      type: string
+                    provider:
+                      type: string
+                  required:
+                  - id
+                  - type
+                  - brand
+                  - last4
+                  - expiry
+                  - holder_name
+                  - provider
+              required:
+              - id
+              - order_number
+              - total_amount
+              - status
+              - placed_at
+              - order_items
+              - shipping_address
+              - payment_method

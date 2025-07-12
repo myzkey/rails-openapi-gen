@@ -2,6 +2,31 @@
 
 Rails comment-driven OpenAPI specification generator.
 
+## Requirements
+
+- **Ruby 3.0 or higher**
+- **Rails 6.0 or higher**
+
+## Installation
+
+Add this line to your application's Gemfile:
+
+```ruby
+gem 'rails-openapi-gen'
+```
+
+And then execute:
+
+```bash
+$ bundle install
+```
+
+Or install it yourself as:
+
+```bash
+$ gem install rails-openapi-gen
+```
+
 ## Overview
 
 rails-openapi-gen analyzes your Rails application's routes.rb, controllers, and jbuilder templates to automatically generate OpenAPI documentation. It uses AST parsing to extract JSON structure and relies on `# @openapi` comments for accurate type information.

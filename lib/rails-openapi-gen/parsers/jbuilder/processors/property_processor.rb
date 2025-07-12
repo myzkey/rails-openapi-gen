@@ -15,9 +15,11 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
 
             if CallDetectors::JsonCallDetector.json_property?(receiver, method_name)
               process_json_property(node, method_name.to_s, args)
+            else
+              # For non-JSON property calls, don't process anything to avoid creating
+              # properties for variable access calls
+              super
             end
-
-            super(node)
           end
 
           private

@@ -4,7 +4,9 @@ module RailsOpenapiGen
   module AstNodes
   # Represents a property node in Jbuilder template (json.property_name)
   class PropertyNode < BaseNode
-    attr_reader :property_name, :comment_data, :is_conditional
+    attr_reader :property_name # json.xxx
+    attr_reader :comment_data # @openapi comments
+    attr_reader :is_conditional # if/else
 
     def initialize(property_name:, comment_data: nil, is_conditional: false, parent: nil, metadata: {})
       super(parent: parent, metadata: metadata)
@@ -53,7 +55,9 @@ module RailsOpenapiGen
         required: required?,
         openapi_type: openapi_type,
         description: description,
-        enum: enum_values
+        enum: enum_values,
+        # Backward compatibility - also provide property for Generator
+        property: @property_name
       ).compact
     end
 

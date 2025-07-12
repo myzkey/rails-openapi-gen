@@ -40,7 +40,7 @@ RailsOpenapiGen.configure do |config|
   # Route filtering
   config.route_patterns = {
     include: [
-      /^\/api\//      # API routes
+      /^\/api\//,  # All API routes
     ],
     exclude: [
       /\/rails\//,     # Rails internal routes

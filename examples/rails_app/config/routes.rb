@@ -11,6 +11,7 @@ Rails.application.routes.draw do
 
     resources :users, only: [:index, :show, :create, :update, :destroy] do
       resources :posts, only: [:index, :show, :create]
+      resources :orders, only: [:index]
       member do
         patch :activate
         patch :deactivate
@@ -19,7 +20,7 @@ Rails.application.routes.draw do
 
     resources :posts, only: [:index, :show] do
       resources :comments, only: [:index, :create]
-      
+
       # Custom actions with explicit template rendering
       collection do
         get :featured  # Uses explicit template: "api/v1/posts/featured_list"
@@ -33,13 +34,15 @@ Rails.application.routes.draw do
       post :register
       delete :logout
     end
+    # Orders routes
+    resources :orders, only: [:show]
   end
 
   # Admin routes
-  namespace :admin do
-    resources :users, only: [:index, :show, :destroy]
-    resources :reports, only: [:index, :show]
-  end
+  # namespace :admin do
+  #   resources :users, only: [:index, :show, :destroy]
+  #   resources :reports, only: [:index, :show]
+  # end
 
   # Defines the root path route ("/")
   # root "posts#index"

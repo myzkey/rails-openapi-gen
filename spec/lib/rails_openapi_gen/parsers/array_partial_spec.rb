@@ -27,7 +27,7 @@ RSpec.describe "Array with Partial Processing" do
     JBUILDER
   end
 
-  it "processes partials in json.array! blocks correctly", pending: "Schema generation for array partials needs complex fix" do
+  it "processes partials in json.array! blocks correctly" do
     main_file = 'test_array_partial.json.jbuilder'
     partial_file = 'test/_professional_experience.json.jbuilder'
     
@@ -57,19 +57,19 @@ RSpec.describe "Array with Partial Processing" do
       generator = RailsOpenapiGen::Generator.new
       schema = generator.send(:build_schema, result[:properties])
       
-      # Root array should be represented in the items property
-      expect(schema['properties']['items']['type']).to eq('array')
-      expect(schema['properties']['items']['items']['type']).to eq('object')
+      # Root array should be represented directly
+      expect(schema['type']).to eq('array')
+      expect(schema['items']['type']).to eq('object')
       
       # Should have all the expected properties in the array items
-      item_schema_properties = schema['properties']['items']['items']['properties']
+      item_schema_properties = schema['items']['properties']
       expect(item_schema_properties).to have_key('id')
       expect(item_schema_properties).to have_key('company_name')
       expect(item_schema_properties).to have_key('position')
       expect(item_schema_properties).to have_key('end_date')
       
       # Check required fields (new default behavior)
-      required_fields = schema['properties']['items']['items']['required']
+      required_fields = schema['items']['required']
       expect(required_fields).to include('id', 'company_name', 'position')
       expect(required_fields).not_to include('end_date')  # marked as required:false
       

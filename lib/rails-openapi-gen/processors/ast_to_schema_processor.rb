@@ -18,16 +18,22 @@ module RailsOpenapiGen::Processors
       @schema = {}
       @required_properties = []
       
+      puts "🔍 DEBUG: Using NEW AstToSchemaProcessor with node: #{root_node.class.name}" if ENV['RAILS_OPENAPI_DEBUG']
+      if root_node.respond_to?(:properties) && ENV['RAILS_OPENAPI_DEBUG']
+        puts "🔍 DEBUG: Root node has #{root_node.properties.size} properties"
+        root_node.properties.each_with_index do |prop, i|
+          puts "🔍 DEBUG: Property #{i}: #{prop.property_name} (#{prop.class.name})"
+        end
+      end
+      
       result = process(root_node)
       
       # Handle root array case
       if root_node.is_a?(RailsOpenapiGen::AstNodes::ArrayNode) && root_node.root_array?
-        {
-          type: 'array',
-          items: result || { type: 'object' }
-        }
+        # For root arrays, return the result directly since visit_array already creates the array schema
+        result || { 'type' => 'array', 'items' => { 'type' => 'object' } }
       else
-        result || { type: 'object' }
+        result || { 'type' => 'object' }
       end
     end
 
@@ -60,27 +66,53 @@ module RailsOpenapiGen::Processors
     # @return [Hash] Array schema
     def visit_array(node)
       schema = {
-        type: 'array',
-        description: extract_description(node.comment_data)
+        'type' => 'array',
+        'description' => extract_description(node.comment_data)
       }.compact
       
       # Process array items
       if node.items.any?
-        # If we have actual item nodes, process them
-        item_schemas = process_nodes(node.items)
-        
-        if item_schemas.length == 1
-          schema[:items] = item_schemas.first
-        elsif item_schemas.length > 1
-          # Multiple item types - use oneOf
-          schema[:items] = { oneOf: item_schemas }
+        # Check if all items are properties (from partial processing)
+        # If so, combine them into a single object schema
+        if node.items.all? { |item| item.is_a?(RailsOpenapiGen::AstNodes::PropertyNode) }
+          # Combine all property nodes into a single object schema
+          properties = {}
+          required = []
+          
+          node.items.each do |property_node|
+            prop_schema = process(property_node)
+            next unless prop_schema
+            
+            properties[property_node.property_name] = prop_schema
+            
+            # Add to required if property is required
+            if required?(property_node)
+              required << property_node.property_name
+            end
+          end
+          
+          object_schema = { 'type' => 'object' }
+          object_schema['properties'] = properties if properties.any?
+          object_schema['required'] = required if required.any?
+          
+          schema['items'] = object_schema
         else
-          schema[:items] = { type: 'object' }
+          # If we have actual item nodes, process them
+          item_schemas = process_nodes(node.items)
+          
+          if item_schemas.length == 1
+            schema['items'] = item_schemas.first
+          elsif item_schemas.length > 1
+            # Multiple item types - use oneOf
+            schema['items'] = { 'oneOf' => item_schemas }
+          else
+            schema['items'] = { 'type' => 'object' }
+          end
         end
       else
         # Use comment data for item type
         items_spec = node.comment_data&.array_items
-        schema[:items] = items_spec || { type: 'object' }
+        schema['items'] = items_spec || { 'type' => 'object' }
       end
       
       schema
@@ -91,8 +123,8 @@ module RailsOpenapiGen::Processors
     # @return [Hash] Object schema
     def visit_object(node)
       schema = {
-        type: 'object',
-        description: extract_description(node.comment_data)
+        'type' => 'object',
+        'description' => extract_description(node.comment_data)
       }.compact
       
       # Process properties
@@ -112,8 +144,8 @@ module RailsOpenapiGen::Processors
           end
         end
         
-        schema[:properties] = properties if properties.any?
-        schema[:required] = required if required.any?
+        schema['properties'] = properties if properties.any?
+        schema['required'] = required if required.any?
       end
       
       schema
@@ -123,6 +155,8 @@ module RailsOpenapiGen::Processors
     # @param node [RailsOpenapiGen::AstNodes::PartialNode] Partial node
     # @return [Hash] Schema from partial
     def visit_partial(node)
+      puts "🔍 DEBUG: Processing partial node: #{node.partial_path}, properties: #{node.properties.size}" if ENV['RAILS_OPENAPI_DEBUG']
+      
       # Process the properties from the parsed partial
       if node.properties.any?
         # Create an object schema with the partial's properties
@@ -130,6 +164,7 @@ module RailsOpenapiGen::Processors
         required = []
         
         node.properties.each do |property|
+          puts "🔍 DEBUG: Processing partial property: #{property.property_name} (#{property.class.name})" if ENV['RAILS_OPENAPI_DEBUG']
           prop_schema = process(property)
           next unless prop_schema
           
@@ -140,17 +175,19 @@ module RailsOpenapiGen::Processors
           end
         end
         
-        schema = { type: 'object' }
-        schema[:properties] = properties if properties.any?
-        schema[:required] = required if required.any?
-        schema[:description] = extract_description(node.comment_data) if node.comment_data&.description
+        schema = { 'type' => 'object' }
+        schema['properties'] = properties if properties.any?
+        schema['required'] = required if required.any?
+        schema['description'] = extract_description(node.comment_data) if node.comment_data&.description
         
+        puts "🔍 DEBUG: Partial schema generated: #{schema.keys}" if ENV['RAILS_OPENAPI_DEBUG']
         schema
       else
+        puts "🔍 DEBUG: Partial has no properties, using fallback" if ENV['RAILS_OPENAPI_DEBUG']
         # Fallback to basic object schema
         {
-          type: 'object',
-          description: extract_description(node.comment_data) || "Partial: #{node.partial_path}"
+          'type' => 'object',
+          'description' => extract_description(node.comment_data) || "Partial: #{node.partial_path}"
         }.compact
       end
     end
@@ -160,8 +197,8 @@ module RailsOpenapiGen::Processors
     # @return [Hash] Basic object schema
     def visit_unknown(node)
       {
-        type: 'object',
-        description: 'Unknown node type'
+        'type' => 'object',
+        'description' => 'Unknown node type'
       }
     end
 
@@ -172,8 +209,8 @@ module RailsOpenapiGen::Processors
     # @return [Hash] Basic schema
     def build_basic_schema(node)
       schema = {
-        type: extract_type(node.comment_data),
-        description: extract_description(node.comment_data)
+        'type' => extract_type(node.comment_data),
+        'description' => extract_description(node.comment_data)
       }.compact
       
       schema

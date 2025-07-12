@@ -28,7 +28,7 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
               end
             end
 
-            super(node)
+            super
           end
 
           # Processes block nodes for array iterations
@@ -47,10 +47,10 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
                 # This is an array iteration block like json.tags @tags do |tag|
                 process_array_iteration_block(node, method_name.to_s)
               else
-                super(node)
+                super
               end
             else
-              super(node)
+              super
             end
           end
 
@@ -76,7 +76,7 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
             if body
               # Create a CompositeProcessor to handle all types of calls within the block
               composite_processor = self.class.composite_processor_class.new(@file_path, @property_parser)
-              composite_processor.process_node(body)
+              composite_processor.process(body)
 
               # Merge results from the composite processor
               @properties.concat(composite_processor.properties)
@@ -87,10 +87,15 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
             item_properties = properties.dup
 
             # Process any partials found in this block
+            puts "🔍 DEBUG: Found #{partials.size} partials in array block" if ENV['RAILS_OPENAPI_DEBUG']
             partials.each do |partial_path|
+              puts "🔍 DEBUG: Processing partial: #{partial_path}" if ENV['RAILS_OPENAPI_DEBUG']
               if File.exist?(partial_path)
                 partial_properties = parse_partial_for_nested_object(partial_path)
+                puts "🔍 DEBUG: Partial properties: #{partial_properties.size}" if ENV['RAILS_OPENAPI_DEBUG']
                 item_properties.concat(partial_properties)
+              else
+                puts "🔍 DEBUG: Partial file not found: #{partial_path}" if ENV['RAILS_OPENAPI_DEBUG']
               end
             end
 
@@ -135,6 +140,7 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
 
             # Mark this as an array root
             property_info = {
+              node_type: 'array',
               property: 'items', # Special property to indicate array items
               comment_data: comment_data || { type: 'array', items: { type: 'object' } },
               is_array_root: true
@@ -174,6 +180,7 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
 
                 # Create array schema with items from the partial
                 property_info = {
+                  node_type: 'array',
                   property: 'items',
                   comment_data: { type: 'array' },
                   is_array_root: true,
@@ -212,7 +219,7 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
             if body
               # Create a CompositeProcessor to handle all types of calls within the block
               composite_processor = self.class.composite_processor_class.new(@file_path, @property_parser)
-              composite_processor.process_node(body)
+              composite_processor.process(body)
 
               # Merge results from the composite processor
               @properties.concat(composite_processor.properties)
@@ -221,12 +228,18 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
 
             # Collect item properties
             item_properties = properties.dup
+            puts "🔍 DEBUG: Array block processed, item_properties size: #{item_properties.size}" if ENV['RAILS_OPENAPI_DEBUG']
 
             # Process any partials found in this block
+            puts "🔍 DEBUG: Found #{partials.size} partials in array block" if ENV['RAILS_OPENAPI_DEBUG']
             partials.each do |partial_path|
+              puts "🔍 DEBUG: Processing partial: #{partial_path}" if ENV['RAILS_OPENAPI_DEBUG']
               if File.exist?(partial_path)
                 partial_properties = parse_partial_for_nested_object(partial_path)
+                puts "🔍 DEBUG: Partial properties: #{partial_properties.size}" if ENV['RAILS_OPENAPI_DEBUG']
                 item_properties.concat(partial_properties)
+              else
+                puts "🔍 DEBUG: Partial file not found: #{partial_path}" if ENV['RAILS_OPENAPI_DEBUG']
               end
             end
 
@@ -237,6 +250,7 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
 
             # Build array schema with items
             property_info = {
+              node_type: 'property',
               property: property_name,
               comment_data: comment_data || { type: 'array' },
               is_array: true,

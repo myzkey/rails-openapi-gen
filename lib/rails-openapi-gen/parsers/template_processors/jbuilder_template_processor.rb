@@ -40,7 +40,7 @@ module RailsOpenapiGen::Parsers::TemplateProcessors
         if render_call?(node)
           extract_render_target(node)
         end
-        super(node)
+        super
       end
 
       private

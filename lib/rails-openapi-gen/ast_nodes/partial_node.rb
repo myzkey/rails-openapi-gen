@@ -5,7 +5,15 @@ module RailsOpenapiGen::AstNodes
   class PartialNode < BaseNode
     attr_reader :partial_path, :property_name, :comment_data, :is_conditional, :local_variables
 
-    def initialize(partial_path:, property_name: nil, comment_data: nil, is_conditional: false, local_variables: {}, parent: nil, metadata: {})
+    def initialize(
+      partial_path:,
+      property_name: nil,
+      comment_data: nil,
+      is_conditional: false,
+      local_variables: {},
+      parent: nil,
+      metadata: {}
+    )
       super(parent: parent, metadata: metadata)
       @partial_path = partial_path
       @property_name = property_name
@@ -19,7 +27,7 @@ module RailsOpenapiGen::AstNodes
     # @return [String] Resolved partial path
     def resolve_path(base_path = nil)
       return @partial_path if @partial_path.start_with?('/')
-      
+
       if base_path
         File.join(File.dirname(base_path), "#{@partial_path}.json.jbuilder")
       else
@@ -89,7 +97,7 @@ module RailsOpenapiGen::AstNodes
         required: required?,
         description: description,
         local_variables: @local_variables,
-        properties: properties.map(&:to_h)
+        properties: properties.map { |prop| prop.respond_to?(:to_h) ? prop.to_h : prop }
       ).compact
     end
 

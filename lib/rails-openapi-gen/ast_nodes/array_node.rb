@@ -44,8 +44,15 @@ module RailsOpenapiGen::AstNodes
       return 'object' if items.any?
       
       # Check comment data for item type specification
-      if @comment_data.items && @comment_data.items[:type]
-        @comment_data.items[:type]
+      if @comment_data.items
+        case @comment_data.items
+        when Hash
+          @comment_data.items[:type] || 'object'
+        when String
+          @comment_data.items
+        else
+          'object'
+        end
       else
         'object'
       end
@@ -66,6 +73,7 @@ module RailsOpenapiGen::AstNodes
     # Convert to hash representation
     # @return [Hash] Hash representation
     def to_h
+      items_hash = items.map { |item| item.respond_to?(:to_h) ? item.to_h : item }
       super.merge(
         property_name: @property_name,
         comment_data: @comment_data&.to_h,
@@ -75,7 +83,11 @@ module RailsOpenapiGen::AstNodes
         openapi_type: 'array',
         item_type: item_type,
         description: description,
-        items: items.map(&:to_h)
+        items: items_hash,
+        # Backward compatibility - also provide array_item_properties for Generator
+        array_item_properties: items_hash,
+        # Backward compatibility - also provide is_array_root for Generator
+        is_array_root: @is_root_array
       ).compact
     end
 

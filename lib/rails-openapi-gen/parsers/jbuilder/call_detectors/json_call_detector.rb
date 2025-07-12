@@ -43,6 +43,9 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
         return false if method_name.nil?
         return false if SPECIAL_METHODS.include?(method_name.to_s)
         
+        # Don't handle bare "json" calls - these are receivers, not properties
+        return false if receiver.nil? && method_name == :json
+        
         # Must be called on json (implicit or explicit)
         json_receiver?(receiver)
       end

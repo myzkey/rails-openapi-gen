@@ -74,18 +74,18 @@ module RailsOpenapiGen::AstNodes
     # @return [Hash, nil] Items specification
     def array_items
       return nil unless @type == 'array'
-      @items || { type: 'object' }
+      @items || { 'type' => 'object' }
     end
 
     # Convert to hash representation suitable for OpenAPI schema
     # @return [Hash] Hash representation
     def to_openapi_schema
-      schema = { type: openapi_type }
-      schema[:description] = @description if @description
-      schema[:enum] = @enum if has_enum?
-      schema[:format] = @format if has_format?
-      schema[:example] = @example if has_example?
-      schema[:items] = array_items if @type == 'array' && array_items
+      schema = { 'type' => openapi_type }
+      schema['description'] = @description if @description
+      schema['enum'] = @enum if has_enum?
+      schema['format'] = @format if has_format?
+      schema['example'] = @example if has_example?
+      schema['items'] = array_items if @type == 'array' && array_items
       schema
     end
 

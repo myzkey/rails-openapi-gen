@@ -36,14 +36,14 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
           # @param node [Parser::AST::Node] Method call node
           # @return [void]
           def on_send(node)
-            super(node)
+            super
           end
 
           # Processes block nodes - to be overridden by subclasses
           # @param node [Parser::AST::Node] Block node
           # @return [void]
           def on_block(node)
-            super(node)
+            super
           end
 
           # Processes if statements to track conditional properties
@@ -55,10 +55,10 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
 
             if comment_data && comment_data[:conditional]
               @conditional_stack.push(true)
-              super(node)
+              super
               @conditional_stack.pop
             else
-              super(node)
+              super
             end
           end
 
@@ -91,22 +91,27 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
           # @param partial_name [String] Partial name (e.g., "users/user")
           # @return [String, nil] Full path to partial file or nil
           def resolve_partial_path(partial_name)
+            return nil unless @file_path && partial_name
+            
+            puts "🔍 DEBUG: resolve_partial_path called with: #{partial_name}, file_path: #{@file_path}" if ENV['RAILS_OPENAPI_DEBUG']
+            
             dir = File.dirname(@file_path)
 
             if partial_name.include?('/')
               # Find the app/views directory from the current file path
-              path_parts = @file_path.split('/')
+              path_parts = @file_path.to_s.split('/')
+              puts "🔍 DEBUG: path_parts: #{path_parts}" if ENV['RAILS_OPENAPI_DEBUG']
               views_index = path_parts.rindex('views')
               if views_index
                 views_path = path_parts[0..views_index].join('/')
                 # For paths like 'users/user', convert to 'users/_user.json.jbuilder'
-                parts = partial_name.split('/')
+                parts = partial_name.to_s.split('/')
                 dir_part = parts[0..-2].join('/')
                 file_part = "_#{parts[-1]}"
                 File.join(views_path, dir_part, "#{file_part}.json.jbuilder")
               else
                 # For paths like 'users/user', convert to 'users/_user.json.jbuilder'
-                parts = partial_name.split('/')
+                parts = partial_name.to_s.split('/')
                 dir_part = parts[0..-2].join('/')
                 file_part = "_#{parts[-1]}"
                 File.join(dir, dir_part, "#{file_part}.json.jbuilder")
@@ -125,6 +130,8 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
             # Create a new parser to parse the partial independently
             partial_parser = JbuilderParser.new(partial_path)
             result = partial_parser.parse
+            puts "🔍 DEBUG: parse_partial_for_nested_object returned #{result[:properties].size} properties" if ENV['RAILS_OPENAPI_DEBUG']
+            puts "🔍 DEBUG: first property type: #{result[:properties].first.class}" if ENV['RAILS_OPENAPI_DEBUG'] && result[:properties].any?
             result[:properties]
           end
 
@@ -214,7 +221,7 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
               on_if(node)
             else
               # For other node types, recursively process children
-              node.children.each { |child| process_node(child) if child.is_a?(Parser::AST::Node) }
+              node.children.each { |child| process(child) if child.is_a?(Parser::AST::Node) }
             end
           end
 

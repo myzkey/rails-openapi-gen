@@ -15,7 +15,7 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
 
             process_partial(args) if CallDetectors::PartialCallDetector.partial_call?(receiver, method_name)
 
-            super(node)
+            super
           end
 
           private
@@ -29,7 +29,10 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
             partial_name = extract_partial_name(args)
             return unless partial_name
 
+            puts "🔍 DEBUG: Found partial: #{partial_name}" if ENV['RAILS_OPENAPI_DEBUG']
             partial_path = resolve_partial_path(partial_name)
+            puts "🔍 DEBUG: Resolved partial path: #{partial_path}" if ENV['RAILS_OPENAPI_DEBUG']
+            puts "🔍 DEBUG: Partial exists: #{File.exist?(partial_path)}" if ENV['RAILS_OPENAPI_DEBUG'] && partial_path
             @partials << partial_path if partial_path
           end
 
@@ -47,9 +50,11 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
             # Handle hash case: json.partial! partial: 'path/to/partial', locals: {...}
             if first_arg.type == :hash
               first_arg.children.each do |pair|
-                next unless pair.type == :pair
+                next unless pair&.type == :pair
                 
                 key, value = pair.children
+                next unless key && value
+                
                 if key.type == :sym && key.children.first == :partial && value.type == :str
                   return value.children.first
                 end

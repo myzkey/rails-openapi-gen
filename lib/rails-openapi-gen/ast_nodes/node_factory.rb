@@ -80,31 +80,37 @@ module RailsOpenapiGen::AstNodes
         case hash_data[:node_type]&.to_sym
         when :array
           create_array(
-            property_name: hash_data[:property_name],
+            property_name: hash_data[:property_name] || hash_data[:property],
             comment_data: hash_data[:comment_data],
             is_conditional: hash_data[:is_conditional] || false,
-            is_root_array: hash_data[:is_root_array] || false
+            is_root_array: hash_data[:is_root_array] || hash_data[:is_array_root] || false
           )
         when :object
           create_object(
-            property_name: hash_data[:property_name],
+            property_name: hash_data[:property_name] || hash_data[:property],
             comment_data: hash_data[:comment_data],
             is_conditional: hash_data[:is_conditional] || false
           )
         when :partial
           create_partial(
             partial_path: hash_data[:partial_path],
-            property_name: hash_data[:property_name],
+            property_name: hash_data[:property_name] || hash_data[:property],
             comment_data: hash_data[:comment_data],
             is_conditional: hash_data[:is_conditional] || false,
             local_variables: hash_data[:local_variables] || {}
           )
         else
-          create_property(
-            property_name: hash_data[:property_name],
-            comment_data: hash_data[:comment_data],
-            is_conditional: hash_data[:is_conditional] || false
-          )
+          # Check if this is an array property that should be preserved as hash
+          if hash_data[:is_array] && hash_data[:array_item_properties]
+            # Return hash data directly to preserve array information
+            hash_data
+          else
+            create_property(
+              property_name: hash_data[:property_name] || hash_data[:property],
+              comment_data: hash_data[:comment_data],
+              is_conditional: hash_data[:is_conditional] || false
+            )
+          end
         end
       end
 
@@ -113,7 +119,7 @@ module RailsOpenapiGen::AstNodes
       # @return [Array<BaseNode>] Array of created nodes
       def from_hash_array(hash_array)
         return [] unless hash_array.is_a?(Array)
-        
+
         hash_array.map { |hash_data| from_hash(hash_data) }
       end
 
@@ -122,7 +128,7 @@ module RailsOpenapiGen::AstNodes
       # @return [BaseNode] Root node with children
       def create_tree(hash_data)
         root_node = from_hash(hash_data)
-        
+
         # Add children if present
         if hash_data[:children]
           hash_data[:children].each do |child_data|
@@ -133,7 +139,7 @@ module RailsOpenapiGen::AstNodes
 
         # Add specific child types
         add_specific_children(root_node, hash_data)
-        
+
         root_node
       end
 
@@ -146,7 +152,7 @@ module RailsOpenapiGen::AstNodes
       def normalize_comment_data(data, default_type: nil)
         return CommentData.new(type: default_type) if data.nil?
         return data if data.is_a?(CommentData)
-        
+
         # Convert hash to CommentData
         CommentData.new(
           type: data[:type] || default_type,

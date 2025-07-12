@@ -2,6 +2,7 @@
 
 require 'rails-openapi-gen/version'
 require 'rails-openapi-gen/configuration'
+require 'pp'
 
 # Zeitwerk autoloading setup
 module RailsOpenapiGen
@@ -44,6 +45,26 @@ module RailsOpenapiGen
     end
   end
 
+  class Checker
+    # Checks for missing OpenAPI comments and uncommitted changes
+    # @return [void]
+    def run
+      puts "🔍 Checking for missing comments and uncommitted changes..."
+      
+      # Run OpenAPI generation to check for missing comments
+      system('bin/rails openapi:generate') || system('bundle exec rails openapi:generate')
+      
+      # Check for uncommitted changes in openapi directory
+      if system('git diff --quiet docs/api/ 2>/dev/null')
+        puts "✅ All checks passed!"
+      else
+        puts "❌ Found uncommitted changes in OpenAPI files"
+        puts `git diff docs/api/`
+        exit 1
+      end
+    end
+  end
+
   class Generator
     # Runs the OpenAPI generation process
     # @return [void]
@@ -52,22 +73,37 @@ module RailsOpenapiGen
       RailsOpenapiGen.configuration.load_from_file
 
       routes = Parsers::RoutesParser.new.parse
-      filtered_routes = routes.select { |route| RailsOpenapiGen.configuration.route_included?(route[:path]) }
+
+      # Debug: Show filtering configuration
+      config = RailsOpenapiGen.configuration
+
+      # Apply filtering with debug output
+      filtered_routes = routes.select do |route|
+        included = config.route_included?(route[:path])
+        included
+      end
 
       schemas = {}
 
       filtered_routes.each do |route|
-        controller_info = Parsers::ControllerParser.new(route).parse
+        begin
+          controller_info = Parsers::ControllerParser.new(route).parse
 
-        next unless controller_info[:jbuilder_path]
+          next unless controller_info[:jbuilder_path]
 
-        jbuilder_result = Parsers::Jbuilder::JbuilderParser.new(controller_info[:jbuilder_path]).parse
-        schema = build_schema(jbuilder_result[:properties])
-        schemas[route] = {
-          schema: schema,
-          parameters: controller_info[:parameters] || {},
-          operation: jbuilder_result[:operation]
-        }
+          jbuilder_parser = Parsers::Jbuilder::JbuilderParser.new(controller_info[:jbuilder_path])
+          ast_node = jbuilder_parser.parse_ast
+          schema = Processors::AstToSchemaProcessor.new.process_to_schema(ast_node)
+          schemas[route] = {
+            schema: schema,
+            parameters: controller_info[:parameters] || {},
+            operation: {} # Operation data is not available in AST approach
+          }
+        rescue => e
+          puts "❌ ERROR processing route #{route[:method]} #{route[:path]}: #{e.class} - #{e.message}" if ENV['RAILS_OPENAPI_DEBUG']
+          puts "❌ ERROR at: #{e.backtrace.first(3).join("\n")}" if ENV['RAILS_OPENAPI_DEBUG']
+          raise
+        end
       end
 
       Generators::YamlGenerator.new(schemas).generate
@@ -76,249 +112,58 @@ module RailsOpenapiGen
 
     private
 
-    # Builds schema from parsed AST nodes
-    # @param ast [Array<PropertyNode, Hash>] Array of property nodes (supports both structured and hash format)
-    # @return [Hash] OpenAPI schema definition
-    def build_schema(ast)
-      # Normalize input to support both structured nodes and hashes
-      normalized_ast = normalize_ast_input(ast)
-
-      # Check if this is an array response (json.array!)
-      return build_array_schema(normalized_ast) if normalized_ast.any? { |node| is_array_node?(node) }
-
-      schema = { 'type' => 'object', 'properties' => {}, 'required' => [] }
-
-      normalized_ast.each do |node|
-        # Skip array root/array items as they're handled separately
-        next if is_array_node?(node)
-
-        property_schema = build_property_schema(node)
-        property_name = get_property_name(node)
-
-        schema['properties'][property_name] = property_schema
-        # Mark properties as required by default unless they're optional or conditional
-        schema['required'] << property_name if should_be_required?(node)
-      end
-
-      schema
-    end
-
-    # Builds array schema from AST nodes containing json.array!
-    # @param ast [Array<Hash>] Array of parsed AST nodes
-    # @return [Hash] OpenAPI array schema definition
-    def build_array_schema(ast)
-      # For json.array! responses, return array schema
-      item_properties = {}
-      required_fields = []
-
-      # Find the array root node to check for array_item_properties
-      array_root_node = ast.find { |node| node[:is_array_root] || node[:is_array] }
-
-      if array_root_node && array_root_node[:array_item_properties]
-        # Use properties from the parsed partial
-        array_root_node[:array_item_properties].each do |node|
-          property = node[:property]
-          comment_data = node[:comment_data] || {}
-
-          property_schema = build_property_schema(node)
-          item_properties[property] = property_schema
-          required_fields << property if comment_data[:required] != 'false' && !node[:is_conditional]
-        end
-      else
-        # Fall back to looking for non-root properties
-        ast.each do |node|
-          next if node[:is_array_root] || node[:is_array]
-
-          property = node[:property]
-          comment_data = node[:comment_data] || {}
-
-          property_schema = build_property_schema(node)
-          item_properties[property] = property_schema
-          required_fields << property if comment_data[:required] != 'false' && !node[:is_conditional]
-        end
-      end
-
-      {
-        'type' => 'array',
-        'items' => {
-          'type' => 'object',
-          'properties' => item_properties,
-          'required' => required_fields
-        }
+    # Builds OpenAPI schema from AST properties array
+    # @param properties [Array<Hash>] Array of property hashes with property name and comment_data
+    # @return [Hash] OpenAPI schema object
+    def build_schema(properties)
+      schema = {
+        "type" => "object",
+        "properties" => {},
+        "required" => []
       }
-    end
 
-    # Builds property schema from a single AST node
-    # @param node [Hash] Parsed AST node containing property information
-    # @return [Hash] OpenAPI property schema
-    def build_property_schema(node)
-      comment_data = node[:comment_data] || {}
-      property_schema = {}
+      properties.each do |prop|
+        property_name = prop[:property] || prop["property"]
+        comment_data = prop[:comment_data] || prop["comment_data"]
+        
+        next unless property_name
 
-      # Handle different property types
-      if node[:is_array_root]
-        # Handle json.array! blocks
-        property_schema['type'] = 'array'
-
-        if node[:array_item_properties] && !node[:array_item_properties].empty?
-          # Build items schema from array block
-          items_schema = build_nested_object_schema(node[:array_item_properties])
-          items_def = {
-            'type' => 'object',
-            'properties' => items_schema['properties']
+        if comment_data
+          property_schema = {
+            "type" => comment_data[:type] || comment_data["type"] || "string"
           }
-          if items_schema['required'] && !items_schema['required'].empty?
-            items_def['required'] =
-              items_schema['required']
+          
+          # Add description if present
+          if comment_data[:description] || comment_data["description"]
+            property_schema["description"] = comment_data[:description] || comment_data["description"]
           end
-          property_schema['items'] = items_def
-        elsif comment_data[:items]
-          # Use specified items type from comment
-          property_schema['items'] = { 'type' => comment_data[:items] }
+          
+          # Add enum if present
+          if comment_data[:enum] || comment_data["enum"]
+            property_schema["enum"] = comment_data[:enum] || comment_data["enum"]
+          end
+          
+          schema["properties"][property_name] = property_schema
+          
+          # Add to required unless explicitly marked as not required
+          required = comment_data[:required] || comment_data["required"]
+          unless required == false || required == "false"
+            schema["required"] << property_name
+          end
         else
-          # Default to object items
-          property_schema['items'] = { 'type' => 'object' }
-        end
-      elsif node[:is_object] || node[:is_nested]
-        property_schema['type'] = 'object'
-
-        # Build nested properties if they exist
-        if node[:nested_properties] && !node[:nested_properties].empty?
-          nested_schema = build_nested_object_schema(node[:nested_properties])
-          property_schema['properties'] = nested_schema['properties']
-          if nested_schema['required'] && !nested_schema['required'].empty?
-            property_schema['required'] =
-              nested_schema['required']
-          end
-        end
-      elsif node[:is_array]
-        property_schema['type'] = 'array'
-
-        if node[:array_item_properties] && !node[:array_item_properties].empty?
-          # Build items schema from array iteration block
-          items_schema = build_nested_object_schema(node[:array_item_properties])
-          items_def = {
-            'type' => 'object',
-            'properties' => items_schema['properties']
+          # Handle missing comments
+          schema["properties"][property_name] = {
+            "type" => "string",
+            "description" => "TODO: MISSING COMMENT"
           }
-          if items_schema['required'] && !items_schema['required'].empty?
-            items_def['required'] =
-              items_schema['required']
-          end
-          property_schema['items'] = items_def
-        elsif comment_data[:items]
-          # Use specified items type from comment
-          property_schema['items'] = { 'type' => comment_data[:items] }
-        else
-          # Default to object items
-          property_schema['items'] = { 'type' => 'object' }
+          schema["required"] << property_name
         end
-      elsif comment_data[:type] && comment_data[:type] != 'TODO: MISSING COMMENT'
-        property_schema['type'] = comment_data[:type]
-
-        # Handle array types
-        if comment_data[:type] == 'array'
-          property_schema['items'] = if comment_data[:items]
-                                       # Use specified items type
-                                       { 'type' => comment_data[:items] }
-                                     else
-                                       # Default to string items if no items type is specified
-                                       { 'type' => 'string' }
-                                     end
-        end
-      else
-        # Only show TODO message if no @openapi comment exists at all
-        property_schema['type'] = 'string'
-        if comment_data.nil? || comment_data.empty?
-          property_schema['description'] = 'TODO: MISSING COMMENT - Add @openapi comment'
-        end
-      end
-
-      # Add common properties
-      property_schema['description'] = comment_data[:description] if comment_data[:description]
-      property_schema['enum'] = comment_data[:enum] if comment_data[:enum]
-
-      property_schema
-    end
-
-    # Builds schema for nested object properties
-    # @param nested_properties [Array<Hash>] Array of nested property nodes
-    # @return [Hash] Schema with properties and required fields
-    def build_nested_object_schema(nested_properties)
-      schema = { 'properties' => {}, 'required' => [] }
-
-      nested_properties.each do |node|
-        property = node[:property]
-        comment_data = node[:comment_data] || {}
-
-        property_schema = build_property_schema(node)
-        schema['properties'][property] = property_schema
-        schema['required'] << property if comment_data[:required] != 'false' && !node[:is_conditional]
       end
 
       schema
     end
 
-    # Helper methods for structured AST support
-
-    # Normalizes AST input to support both structured nodes and hash format
-    # @param ast [Array] Array of property nodes or hashes
-    # @return [Array] Array of normalized nodes
-    def normalize_ast_input(ast)
-      ast.map do |node|
-        if node.is_a?(Hash)
-          node
-        else
-          # Convert structured node to hash for backward compatibility
-          node.to_h
-        end
-      end
-    end
-
-    # Checks if a node represents a direct array response (not an array property)
-    # @param node [Hash] Normalized node
-    # @return [Boolean] True if node is a direct array response
-    def is_array_node?(node)
-      node[:is_array_root] || node[:node_type] == :array_root
-    end
-
-    # Gets the property name from a normalized node
-    # @param node [Hash] Normalized node
-    # @return [String] Property name
-    def get_property_name(node)
-      node[:property] || node[:property_name]
-    end
-
-    # Determines if a property should be marked as required
-    # @param node [Hash] Normalized node
-    # @return [Boolean] True if property should be required
-    def should_be_required?(node)
-      comment_data = node[:comment_data] || {}
-      comment_data[:required] != false && 
-      comment_data[:required] != 'false' && 
-      !node[:is_conditional]
-    end
-  end
-
-  class Checker
-    # Runs checks for missing comments and uncommitted changes
-    # @return [void]
-    def run
-      system('bin/rails openapi:generate')
-
-      missing_comments = `grep -r "TODO: MISSING COMMENT" openapi/`.strip
-      unless missing_comments.empty?
-        puts '❌ Missing @openapi comments found!'
-        exit 1
-      end
-
-      diff = `git diff --name-only openapi/`.strip
-      unless diff.empty?
-        puts '❌ OpenAPI spec has uncommitted changes!'
-        exit 1
-      end
-
-      puts '✅ OpenAPI spec is up to date!'
-    end
+    # Note: Old hash-based processing methods have been removed
+    # The system now uses AST-based processing with AstToSchemaProcessor
   end
 end

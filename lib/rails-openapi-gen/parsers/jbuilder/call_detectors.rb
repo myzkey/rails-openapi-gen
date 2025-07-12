@@ -20,10 +20,7 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
           ArrayCallDetector,
           PartialCallDetector,
           JsonCallDetector,
-          CacheCallDetector,
-          KeyFormatDetector,
-          NullHandlingDetector,
-          ObjectManipulationDetector
+          CacheCallDetector
         ].sort_by { |detector| -detector.priority }
       end
 
@@ -33,9 +30,24 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
       # @param args [Array<Parser::AST::Node>] Method arguments
       # @return [Class, nil] Appropriate detector class or nil
       def find_detector(receiver, method_name, args = [])
-        all_detectors.find do |detector|
-          detector.handles?(receiver, method_name, args)
+        if ENV['RAILS_OPENAPI_DEBUG']
+          puts "🔍 DEBUG: DetectorRegistry.find_detector called with method: #{method_name}"
+          puts "🔍 DEBUG: Available detectors: #{all_detectors.map(&:name)}"
         end
+        
+        result = all_detectors.find do |detector|
+          handles = detector.handles?(receiver, method_name, args)
+          if ENV['RAILS_OPENAPI_DEBUG']
+            puts "🔍 DEBUG: #{detector.name}.handles?(#{receiver}, #{method_name}, #{args}) = #{handles}"
+          end
+          handles
+        end
+        
+        if ENV['RAILS_OPENAPI_DEBUG']
+          puts "🔍 DEBUG: Found detector: #{result ? result.name : 'nil'}"
+        end
+        
+        result
       end
 
       # Get detectors by category

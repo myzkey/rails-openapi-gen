@@ -13,7 +13,16 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
       # @param args [Array<Parser::AST::Node>] Method arguments
       # @return [Boolean] True if this is an array call
       def handles?(receiver, method_name, args = [])
-        array_call?(receiver, method_name)
+        result = array_call?(receiver, method_name)
+        if ENV['RAILS_OPENAPI_DEBUG']
+          puts "🔍 DEBUG: ArrayCallDetector.handles? for #{method_name}"
+          puts "   receiver: #{receiver.inspect}"
+          puts "   method_name: #{method_name.inspect}"
+          puts "   method_name == :array!: #{method_name == :array!}"
+          puts "   json_receiver?: #{json_receiver?(receiver)}"
+          puts "   result: #{result}"
+        end
+        result
       end
 
       # High priority for array calls

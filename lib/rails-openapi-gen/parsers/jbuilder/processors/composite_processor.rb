@@ -36,7 +36,7 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
                CallDetectors::KeyFormatDetector.key_format?(receiver, method_name) ||
                CallDetectors::NullHandlingDetector.null_handling?(receiver, method_name) ||
                CallDetectors::ObjectManipulationDetector.object_manipulation?(receiver, method_name)
-              super(node)
+              super
             elsif CallDetectors::ArrayCallDetector.array_call?(receiver, method_name)
               @array_processor.on_send(node)
               merge_processor_results(@array_processor)
@@ -46,9 +46,11 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
             elsif CallDetectors::JsonCallDetector.json_property?(receiver, method_name)
               @property_processor.on_send(node)
               merge_processor_results(@property_processor)
+            else
+              # For unknown method calls, don't process anything to avoid creating properties
+              # for variable access calls like professional_experience.id
+              # The variable access expressions should not generate properties
             end
-
-            super(node)
           end
 
           # Processes block nodes by delegating to appropriate processors
@@ -60,10 +62,10 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
 
             if CallDetectors::CacheCallDetector.cache_call?(receiver, method_name)
               # This is json.cache! or json.cache_if! block - just process the block contents
-              process_node(body) if body
+              process(body) if body
             elsif CallDetectors::CacheCallDetector.cache_if_call?(receiver, method_name)
               # This is json.cache! or json.cache_if! block - just process the block contents
-              process_node(body) if body
+              process(body) if body
             elsif CallDetectors::JsonCallDetector.json_property?(receiver, method_name) && method_name != :array!
               # Check if this is an array iteration block (has block arguments)
               if args_node && args_node.type == :args && args_node.children.any?
@@ -80,7 +82,7 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
               @array_processor.on_block(node)
               merge_processor_results(@array_processor)
             else
-              super(node)
+              super
             end
           end
 

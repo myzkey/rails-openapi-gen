@@ -24,10 +24,10 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
                 # This is a nested object block like json.profile do
                 process_nested_object_block(node, method_name.to_s)
               else
-                super(node)
+                super
               end
             else
-              super(node)
+              super
             end
           end
 
@@ -55,7 +55,7 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
             if body
               # Create a CompositeProcessor to handle all types of calls within the block
               composite_processor = self.class.composite_processor_class.new(@file_path, @property_parser)
-              composite_processor.process_node(body)
+              composite_processor.process(body)
 
               # Merge results from the composite processor
               @properties.concat(composite_processor.properties)
@@ -75,6 +75,15 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
 
             # Check if this object block contains only a json.array! call
             # In that case, we should treat this as a direct array instead of an object
+            if ENV['RAILS_OPENAPI_DEBUG'] && nested_properties.size == 1
+              prop = nested_properties.first
+              if prop.respond_to?(:property_name)
+                is_root = prop.respond_to?(:is_root_array) ? prop.is_root_array : false
+                puts "🔍 DEBUG: Checking if object contains only array - property: #{prop.property_name}, is_array_root: #{is_root}, class: #{prop.class.name}"
+              else
+                puts "🔍 DEBUG: Checking if object contains only array - property: #{prop[:property_name] || prop[:property]}, is_array_root: #{prop[:is_array_root]}, node_type: #{prop[:node_type]}"
+              end
+            end
             has_only_array_root = nested_properties.size == 1 && is_array_root_property(nested_properties.first)
 
             # Restore context but keep partials for higher level processing
@@ -136,8 +145,13 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
           # @return [Boolean] True if it's an array root property
           def is_array_root_property(property)
             if property.is_a?(Hash)
-              (property[:is_array_root] || property[:is_array]) &&
-              (property[:property] == 'items' || property[:is_array])
+              property_name = property[:property_name] || property[:property]
+              (property[:is_array_root] || property[:node_type] == 'array') &&
+              (property_name == 'items' || property[:is_array_root])
+            elsif property.respond_to?(:is_root_array)
+              # Structured AST node
+              property.is_root_array || 
+              (property.respond_to?(:property_name) && property.property_name == 'items')
             else
               property.is_a?(RailsOpenapiGen::AstNodes::ArrayRootNode) ||
               (property.is_a?(RailsOpenapiGen::AstNodes::ArrayPropertyNode) && property.property == 'items')
@@ -150,6 +164,9 @@ module RailsOpenapiGen::Parsers::Jbuilder::Processors
           def get_array_item_properties(array_node)
             if array_node.is_a?(Hash)
               array_node[:array_item_properties] || []
+            elsif array_node.respond_to?(:children)
+              # For ArrayNode, the children are the item properties
+              array_node.children || []
             else
               array_node.array_item_properties || []
             end

@@ -39,18 +39,24 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
       # @param receiver [Parser::AST::Node, nil] Receiver node
       # @return [Boolean] True if receiver is json
       def json_receiver?(receiver)
-        receiver.nil? || (receiver.type == :send && receiver.children[1] == :json)
+        # Handle implicit json calls (receiver is nil in top-level context)
+        return true if receiver.nil?
+        
+        # Handle explicit json calls (json.property_name)
+        return true if receiver.type == :send && receiver.children[0].nil? && receiver.children[1] == :json
+        
+        false
       end
 
       # Check if method name matches any of the given patterns
-      # @param method_name [Symbol] Method name to check
+      # @param method_name [Symbol, String] Method name to check
       # @param patterns [Array<Symbol, String, Regexp>] Patterns to match against
       # @return [Boolean] True if method name matches any pattern
       def method_matches?(method_name, patterns)
         patterns.any? do |pattern|
           case pattern
           when Symbol, String
-            method_name == pattern.to_sym
+            method_name.to_sym == pattern.to_sym
           when Regexp
             pattern.match?(method_name.to_s)
           else

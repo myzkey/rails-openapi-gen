@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe RailsOpenapiGen::Configuration, "load order", :skip => "TODO: Implement configuration loading" do
+RSpec.describe RailsOpenapiGen::Configuration, "load order" do
   let(:config) { described_class.new }
   let(:rails_root) { Rails.root.to_s }
 

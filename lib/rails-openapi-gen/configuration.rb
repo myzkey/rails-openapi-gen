@@ -33,10 +33,30 @@ module RailsOpenapiGen
     # @param file_path [String, nil] Path to configuration file (defaults to config/openapi.rb or config/initializers/openapi.rb)
     # @return [void]
     def load_from_file(file_path = nil)
-      # TODO: Implement configuration loading from file
-      # This method should load configuration from Ruby files and apply it to the instance
-      return
+      # If no file path provided, try to find configuration file automatically
+      if file_path.nil?
+        file_path = find_config_file
+        return unless file_path
+      end
+
+      # Check if file exists
+      unless File.exist?(file_path)
+        puts "⚠️  Configuration file not found: #{file_path}" if ENV['RAILS_OPENAPI_DEBUG']
+        return
+      end
+
+      puts "📁 Loading configuration from: #{file_path}" if ENV['RAILS_OPENAPI_DEBUG']
+
+      # Load the configuration file
+      if file_path.end_with?('.rb')
+        load_ruby_config(file_path)
+      elsif file_path.end_with?('.yml', '.yaml')
+        load_yaml_config(file_path)
+      else
+        puts "❌ Unsupported configuration file format: #{file_path}"
+      end
     end
+
 
     # Returns the full path to the output directory
     # @return [String] Full output directory path
@@ -71,32 +91,92 @@ module RailsOpenapiGen
     # @param path [String] Route path to check
     # @return [Boolean] True if route should be included
     def route_included?(path)
+      # Ensure @route_patterns is properly initialized
+      @route_patterns ||= { include: [/.*/], exclude: [] }
+      
       # Check if path matches any include pattern
-      included = @route_patterns[:include].any? { |pattern| path.match?(pattern) }
+      included = (@route_patterns[:include] || []).any? { |pattern| path.match?(pattern) }
       return false unless included
 
       # Check if path matches any exclude pattern
-      excluded = @route_patterns[:exclude].any? { |pattern| path.match?(pattern) }
+      excluded = (@route_patterns[:exclude] || []).any? { |pattern| path.match?(pattern) }
       !excluded
     end
 
     private
 
+    # Find configuration file in Rails application
+    # @return [String, nil] Path to configuration file or nil if not found
+    def find_config_file
+      # Priority order for configuration files
+      candidates = [
+        'config/openapi.rb',
+        'config/initializers/openapi.rb',
+        'config/openapi.yml',
+        'config/openapi.yaml'
+      ]
+
+      if defined?(Rails) && Rails.root
+        candidates.each do |candidate|
+          full_path = File.join(Rails.root, candidate)
+          return full_path if File.exist?(full_path)
+        end
+      end
+
+      nil
+    end
+
     # Loads Ruby configuration file
     # @param file_path [String] Path to configuration file
     # @return [void]
     def load_ruby_config(file_path)
-      # Load Ruby configuration file
-      # The file should call RailsOpenapiGen.configure block
-      load file_path
+      # Save current configuration as backup
+      old_config = RailsOpenapiGen.instance_variable_get(:@configuration)
       
-      # Copy configuration from global singleton to this instance
-      global_config = RailsOpenapiGen.configuration
-      @openapi_version = global_config.openapi_version
-      @info = global_config.info.dup
-      @servers = global_config.servers.dup
-      @route_patterns = global_config.route_patterns.dup
-      @output = global_config.output.dup
+      # Temporarily set this instance as the global configuration
+      # so that the configure block updates this instance
+      RailsOpenapiGen.instance_variable_set(:@configuration, self)
+      
+      begin
+        # Load Ruby configuration file
+        # The file should call RailsOpenapiGen.configure block
+        load file_path
+        puts "✅ Configuration loaded successfully" if ENV['RAILS_OPENAPI_DEBUG']
+      rescue => e
+        puts "❌ Error loading configuration: #{e.message}" if ENV['RAILS_OPENAPI_DEBUG']
+        raise e
+      ensure
+        # Restore original global configuration
+        RailsOpenapiGen.instance_variable_set(:@configuration, old_config)
+      end
+    end
+
+    # Loads YAML configuration file
+    # @param file_path [String] Path to YAML configuration file
+    # @return [void]
+    def load_yaml_config(file_path)
+      require 'yaml'
+      config_hash = YAML.load_file(file_path)
+      
+      # Apply YAML configuration to this instance
+      config_hash.each do |key, value|
+        case key.to_s
+        when 'openapi_version'
+          @openapi_version = value
+        when 'info'
+          @info = symbolize_keys(value)
+        when 'servers'
+          @servers = value.is_a?(Array) ? value : [value]
+        when 'route_patterns'
+          patterns = symbolize_keys(value)
+          @route_patterns[:include] = Array(patterns[:include]).map { |p| Regexp.new(p) }
+          @route_patterns[:exclude] = Array(patterns[:exclude]).map { |p| Regexp.new(p) }
+        when 'output'
+          @output = symbolize_keys(value)
+        end
+      end
+      
+      puts "✅ YAML configuration loaded successfully" if ENV['RAILS_OPENAPI_DEBUG']
     end
 
     # Returns default application name

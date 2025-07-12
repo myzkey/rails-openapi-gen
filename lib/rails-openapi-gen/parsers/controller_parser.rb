@@ -56,7 +56,8 @@ module RailsOpenapiGen
           possible_paths << nested_path
         end
         
-        possible_paths.find { |path| File.exist?(path) }
+        found_path = possible_paths.find { |path| File.exist?(path.to_s) }
+        found_path&.to_s
       end
 
       # Finds action method node in the AST
@@ -116,7 +117,48 @@ module RailsOpenapiGen
           parsed = comment_parser.parse(line)
           next unless parsed
           
-          if parsed[:parameter]
+          # Handle different comment formats
+          if line.include?('path_parameter')
+            # Extract the parameter info from parsed attributes
+            param_info = {
+              name: parsed[:field_name],
+              type: parsed[:type],
+              description: parsed[:description],
+              required: parsed[:required] || 'true',
+              enum: parsed[:enum],
+              format: parsed[:format],
+              minimum: parsed[:minimum],
+              maximum: parsed[:maximum],
+              example: parsed[:example]
+            }.compact
+            parameters[:path_parameters] << param_info
+          elsif line.include?('query_parameter')
+            param_info = {
+              name: parsed[:field_name],
+              type: parsed[:type],
+              description: parsed[:description],
+              required: parsed[:required] || 'false',
+              enum: parsed[:enum],
+              format: parsed[:format],
+              minimum: parsed[:minimum],
+              maximum: parsed[:maximum],
+              example: parsed[:example]
+            }.compact
+            parameters[:query_parameters] << param_info
+          elsif line.include?('body_parameter')
+            param_info = {
+              name: parsed[:field_name],
+              type: parsed[:type],
+              description: parsed[:description],
+              required: parsed[:required] || 'true',
+              enum: parsed[:enum],
+              format: parsed[:format],
+              minimum: parsed[:minimum],
+              maximum: parsed[:maximum],
+              example: parsed[:example]
+            }.compact
+            parameters[:body_parameters] << param_info
+          elsif parsed[:parameter]
             parameters[:path_parameters] << parsed[:parameter]
           elsif parsed[:query_parameter]
             parameters[:query_parameters] << parsed[:query_parameter]
@@ -144,7 +186,7 @@ module RailsOpenapiGen
         def on_def(node)
           method_name = node.children[0]
           @action_node = node if method_name == @action_name
-          super(node)
+          super
         end
       end
 
