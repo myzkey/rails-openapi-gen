@@ -1,0 +1,20 @@
+---
+type: object
+properties:
+  id:
+    type: integer
+    description: User ID
+  name:
+    type: string
+    description: User name
+  email:
+    type: string
+    description: User email
+  created_at:
+    type: string
+    description: User creation timestamp
+required:
+- id
+- name
+- email
+- created_at

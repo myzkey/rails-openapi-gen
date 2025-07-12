@@ -1,0 +1,25 @@
+---
+type: object
+properties:
+  id:
+    type: object
+  type:
+    type: string
+  brand:
+    type: string
+  last4:
+    type: string
+  expiry:
+    type: string
+  holder_name:
+    type: string
+  provider:
+    type: string
+required:
+- id
+- type
+- brand
+- last4
+- expiry
+- holder_name
+- provider

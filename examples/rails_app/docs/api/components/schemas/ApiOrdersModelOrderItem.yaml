@@ -1,0 +1,19 @@
+---
+type: object
+properties:
+  id:
+    type: integer
+  product_id:
+    type: integer
+  quantity:
+    type: integer
+  unit_price:
+    type: integer
+  total_price:
+    type: integer
+required:
+- id
+- product_id
+- quantity
+- unit_price
+- total_price

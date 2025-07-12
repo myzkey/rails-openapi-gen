@@ -1,0 +1,44 @@
+---
+"/api/posts/{post_id}/comments":
+  get:
+    summary: Index Api/comment
+    operationId: api_comments_index
+    tags:
+    - Api
+    parameters:
+    - name: post_id
+      in: path
+      required: true
+      schema:
+        type: string
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: Unique comment identifier
+                  content:
+                    type: string
+                    description: Comment content
+                  author:
+                    type: string
+                    description: Comment author name
+                  created_at:
+                    type: string
+                    description: Comment creation timestamp
+                  likes:
+                    type: integer
+                    description: Number of likes on this comment
+                required:
+                - id
+                - content
+                - author
+                - created_at
+                - likes

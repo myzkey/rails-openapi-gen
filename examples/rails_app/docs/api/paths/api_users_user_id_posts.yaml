@@ -1,0 +1,89 @@
+---
+"/api/users/{user_id}/posts":
+  get:
+    summary: Index Api/post
+    operationId: api_posts_index
+    tags:
+    - Api
+    parameters:
+    - name: user_id
+      in: path
+      required: true
+      schema:
+        type: string
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: Unique post identifier
+                  title:
+                    type: string
+                    description: Post title
+                  content:
+                    type: string
+                    description: Post content/body
+                  published:
+                    type: boolean
+                    description: Whether the post is published
+                  created_at:
+                    type: string
+                    description: Post creation timestamp in ISO 8601 format
+                  tags:
+                    type: object
+                    properties:
+                      name:
+                        type: integer
+                        description: Tag unique identifier
+                      color:
+                        type: string
+                        description: Tag color in hex format
+                    required:
+                    - name
+                    - color
+                required:
+                - id
+                - title
+                - content
+                - published
+                - created_at
+                - tags
+  post:
+    summary: Create Api/post
+    operationId: api_posts_create
+    tags:
+    - Api
+    parameters:
+    - name: user_id
+      in: path
+      required: true
+      schema:
+        type: string
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                message:
+                  type: string
+                post_id:
+                  type: integer
+                created_at:
+                  type: string
+              required:
+              - success
+              - message
+              - post_id
+              - created_at

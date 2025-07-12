@@ -9,13 +9,17 @@ module RailsOpenapiGen::AstNodes
       # @param property_name [String] Name of the property
       # @param comment_data [CommentData, Hash, nil] Comment data
       # @param is_conditional [Boolean] Whether property is conditional
+      # @param is_component_ref [Boolean] Whether this is a component reference
+      # @param component_name [String, nil] Name of the referenced component
       # @param parent [BaseNode, nil] Parent node
       # @return [PropertyNode] Created property node
-      def create_property(property_name:, comment_data: nil, is_conditional: false, parent: nil)
+      def create_property(property_name:, comment_data: nil, is_conditional: false, is_component_ref: false, component_name: nil, parent: nil)
         PropertyNode.new(
           property_name: property_name,
           comment_data: normalize_comment_data(comment_data),
           is_conditional: is_conditional,
+          is_component_ref: is_component_ref,
+          component_name: component_name,
           parent: parent
         )
       end

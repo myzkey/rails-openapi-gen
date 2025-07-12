@@ -1,0 +1,27 @@
+---
+"/api/users/{user_id}/orders":
+  get:
+    summary: Index Api/users/order
+    operationId: api_users_orders_index
+    tags:
+    - Api
+    parameters:
+    - name: user_id
+      in: path
+      required: true
+      schema:
+        type: string
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  order:
+                    "$ref": "#/components/schemas/ApiUsersModelOrder"
+                required:
+                - order

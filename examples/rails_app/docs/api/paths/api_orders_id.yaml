@@ -1,0 +1,68 @@
+---
+"/api/orders/{id}":
+  get:
+    summary: Show Api/order
+    operationId: api_orders_show
+    tags:
+    - Api
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: object
+                order_number:
+                  type: integer
+                total_amount:
+                  type: integer
+                status:
+                  type: string
+                placed_at:
+                  type: string
+                order_items:
+                  type: object
+                  properties:
+                    items:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          order_item:
+                            "$ref": "#/components/schemas/ApiOrdersModelOrderItem"
+                        required:
+                        - order_item
+                  required:
+                  - items
+                shipping_address:
+                  type: object
+                  properties:
+                    address:
+                      "$ref": "#/components/schemas/ApiUsersModelAddress"
+                  required:
+                  - address
+                payment_method:
+                  type: object
+                  properties:
+                    payment_method:
+                      "$ref": "#/components/schemas/ApiOrdersModelPaymentMethod"
+                  required:
+                  - payment_method
+              required:
+              - id
+              - order_number
+              - total_amount
+              - status
+              - placed_at
+              - order_items
+              - shipping_address
+              - payment_method

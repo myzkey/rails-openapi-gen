@@ -1,0 +1,64 @@
+---
+"/api/dashboard":
+  get:
+    summary: Index Api/dashboard
+    operationId: api_dashboard_index
+    tags:
+    - Api
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                total_users:
+                  type: integer
+                  description: Total number of users
+                total_posts:
+                  type: integer
+                  description: Total number of posts
+                active_users:
+                  type: integer
+                  description: Number of active users in last 30 days
+                recent_users:
+                  type: object
+                  description: List of recent users
+                  properties:
+                    id:
+                      type: integer
+                      description: User ID
+                    name:
+                      type: string
+                      description: User name
+                    email:
+                      type: string
+                      description: User email
+                  required:
+                  - id
+                  - name
+                  - email
+                recent_posts:
+                  type: object
+                  description: List of recent posts
+                  properties:
+                    id:
+                      type: integer
+                      description: Post ID
+                    title:
+                      type: string
+                      description: Post title
+                    created_at:
+                      type: string
+                      description: Post creation date
+                  required:
+                  - id
+                  - title
+                  - created_at
+              required:
+              - total_users
+              - total_posts
+              - active_users
+              - recent_users
+              - recent_posts

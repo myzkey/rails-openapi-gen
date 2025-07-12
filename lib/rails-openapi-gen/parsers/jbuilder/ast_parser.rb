@@ -9,14 +9,16 @@ module RailsOpenapiGen::Parsers::Jbuilder
   # Main AST parser for Jbuilder templates
   # Orchestrates the parsing process using CallDetectors and building AstNodes
   class AstParser < Parser::AST::Processor
-    attr_reader :file_path, :root_node, :current_context, :comment_parser
+    attr_reader :file_path, :root_node, :current_context, :comment_parser, :partial_components
 
-    def initialize(file_path)
+    def initialize(file_path, parser_version: Parser::CurrentRuby)
       @file_path = file_path
+      @parser_version = parser_version
       @root_node = RailsOpenapiGen::AstNodes::ObjectNode.new(property_name: 'root')
       @current_context = [@root_node]
       @comment_parser = RailsOpenapiGen::Parsers::CommentParser.new
       @conditional_stack = []
+      @partial_components = {}
     end
 
     # Parse the Jbuilder template and return the root AST node
@@ -334,7 +336,7 @@ module RailsOpenapiGen::Parsers::Jbuilder
       end
       
       if File.exist?(resolved_path)
-        partial_parser = self.class.new(resolved_path)
+        partial_parser = self.class.new(resolved_path, parser_version: @parser_version)
         partial_root = partial_parser.parse
         
         if ENV['RAILS_OPENAPI_DEBUG']
@@ -344,15 +346,29 @@ module RailsOpenapiGen::Parsers::Jbuilder
           end
         end
         
-        # Add parsed properties directly to current parent instead of creating a partial node
-        if partial_root.respond_to?(:properties)
-          partial_root.properties.each do |property|
-            if current_parent.is_a?(RailsOpenapiGen::AstNodes::ArrayNode)
-              current_parent.add_item(property)
-            else
-              current_parent.add_property(property)
-            end
-          end
+        # Create a component reference instead of inline expansion
+        component_name = generate_component_name(partial_path)
+        
+        if ENV['RAILS_OPENAPI_DEBUG']
+          puts "🔍 Generated component name: '#{component_name}' from partial path: '#{partial_path}'"
+        end
+        
+        # Store the partial schema for component generation
+        store_partial_component(component_name, partial_root)
+        
+        # Create a reference node instead of expanding inline
+        ref_property = RailsOpenapiGen::AstNodes::NodeFactory.create_property(
+          property_name: extract_property_name_from_partial(partial_path),
+          comment_data: comment_data,
+          is_conditional: is_conditional,
+          is_component_ref: true,
+          component_name: component_name
+        )
+        
+        if current_parent.is_a?(RailsOpenapiGen::AstNodes::ArrayNode)
+          current_parent.add_item(ref_property)
+        else
+          current_parent.add_property(ref_property)
         end
       else
         puts "⚠️  Partial file not found: #{resolved_path}" if ENV['RAILS_OPENAPI_DEBUG']
@@ -501,6 +517,52 @@ module RailsOpenapiGen::Parsers::Jbuilder
       yield
     ensure
       @current_context.pop
+    end
+
+    # Generate component name from partial path
+    # @param partial_path [String] Partial path (e.g., 'api/users/professional_experience')
+    # @return [String] Component name (e.g., 'ApiUsersProfessionalExperience')
+    def generate_component_name(partial_path)
+      # Split path into parts and clean each part
+      path_parts = partial_path.split('/')
+      
+      # Clean each part: remove underscore prefix, convert to PascalCase
+      clean_parts = path_parts.map do |part|
+        # Remove leading underscore if present
+        cleaned = part.sub(/^_/, '')
+        
+        # Convert snake_case to PascalCase
+        camelized = cleaned.split('_').map do |word|
+          # Keep only alphanumeric characters and capitalize
+          word_cleaned = word.gsub(/[^a-zA-Z0-9]/, '')
+          word_cleaned.capitalize
+        end.join('')
+        
+        camelized
+      end
+      
+      # Join parts to create component name
+      component_name = clean_parts.join('')
+      
+      # Ensure it starts with a capital letter and is not empty
+      component_name.empty? ? 'Component' : component_name
+    end
+
+    # Store partial component for later component generation
+    # @param component_name [String] Component name
+    # @param partial_root [RailsOpenapiGen::AstNodes::BaseNode] Parsed partial root
+    # @return [void]
+    def store_partial_component(component_name, partial_root)
+      @partial_components[component_name] = partial_root
+      puts "📦 Stored component: #{component_name}" if ENV['RAILS_OPENAPI_DEBUG']
+    end
+
+    # Extract property name from partial path
+    # @param partial_path [String] Partial path (e.g., 'api/users/user')
+    # @return [String] Property name (e.g., 'user')
+    def extract_property_name_from_partial(partial_path)
+      filename = File.basename(partial_path)
+      filename.sub(/^_/, '').downcase
     end
   end
 end

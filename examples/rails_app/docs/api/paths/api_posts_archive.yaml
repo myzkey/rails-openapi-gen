@@ -1,0 +1,70 @@
+---
+"/api/posts/archive":
+  get:
+    summary: Archive Api/post
+    operationId: api_posts_archive
+    tags:
+    - Api
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                posts:
+                  type: object
+                  description: List of posts
+                  properties:
+                    id:
+                      type: integer
+                      description: Post ID
+                    title:
+                      type: string
+                      description: Post title
+                    content:
+                      type: string
+                      description: Post content
+                    published:
+                      type: boolean
+                      description: Whether the post is published
+                    archived:
+                      type: boolean
+                      description: Whether the post is archived
+                    created_at:
+                      type: string
+                      description: Post creation timestamp
+                    status:
+                      type: string
+                      description: Post status
+                      :enum:
+                      - active
+                      - inactive
+                  required:
+                  - id
+                  - title
+                  - content
+                  - published
+                  - created_at
+                  - status
+                metadata:
+                  type: object
+                  description: Response metadata
+                  properties:
+                    total:
+                      type: integer
+                      description: Total number of posts
+                    fetched_at:
+                      type: string
+                      description: When the data was fetched
+                    template_used:
+                      type: string
+                      description: Template used for rendering
+                  required:
+                  - total
+                  - fetched_at
+                  - template_used
+              required:
+              - posts
+              - metadata

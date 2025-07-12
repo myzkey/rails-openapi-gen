@@ -9,7 +9,7 @@ require_relative "ast_parser"
 
 module RailsOpenapiGen::Parsers::Jbuilder
   class JbuilderParser
-    attr_reader :jbuilder_path
+    attr_reader :jbuilder_path, :ast_parser
 
     # Initializes Jbuilder parser with template path
     # @param jbuilder_path [String] Path to Jbuilder template file
@@ -20,15 +20,18 @@ module RailsOpenapiGen::Parsers::Jbuilder
       @parsed_files = Set.new
       @operation_parser = nil
       @property_parser = nil
+      @ast_parser = nil
     end
 
     # Main parsing method using AST-based architecture
+    # @param parser_version [Parser] Parser version to use (defaults to Parser::CurrentRuby)
     # @return [RailsOpenapiGen::AstNodes::BaseNode] Root AST node
-    def parse
+    def parse(parser_version: Parser::CurrentRuby)
+      @ast_parser = AstParser.new(jbuilder_path, parser_version: parser_version)
+      
       return nil unless File.exist?(jbuilder_path)
       
-      ast_parser = AstParser.new(jbuilder_path)
-      ast_parser.parse
+      @ast_parser.parse
     end
 
     # Alias for backward compatibility

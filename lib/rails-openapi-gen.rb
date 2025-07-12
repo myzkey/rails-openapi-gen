@@ -2,6 +2,7 @@
 
 require 'rails-openapi-gen/version'
 require 'rails-openapi-gen/configuration'
+require 'parser/current'
 require 'pp'
 
 # Zeitwerk autoloading setup
@@ -67,8 +68,9 @@ module RailsOpenapiGen
 
   class Generator
     # Runs the OpenAPI generation process
+    # @param parser_version [Parser] Parser version to use (defaults to Parser::CurrentRuby)
     # @return [void]
-    def run
+    def run(parser_version: Parser::CurrentRuby)
       # Load configuration
       RailsOpenapiGen.configuration.load_from_file
 
@@ -84,6 +86,7 @@ module RailsOpenapiGen
       end
 
       schemas = {}
+      all_components = {}
 
       filtered_routes.each do |route|
         begin
@@ -92,7 +95,25 @@ module RailsOpenapiGen
           next unless controller_info[:jbuilder_path]
 
           jbuilder_parser = Parsers::Jbuilder::JbuilderParser.new(controller_info[:jbuilder_path])
-          ast_node = jbuilder_parser.parse_ast
+          ast_node = jbuilder_parser.parse(parser_version: parser_version)
+          
+          # Collect components from this parser
+          if ENV['RAILS_OPENAPI_DEBUG']
+            puts "🔍 DEBUG: jbuilder_parser has ast_parser: #{jbuilder_parser.respond_to?(:ast_parser)}"
+            puts "🔍 DEBUG: ast_parser is nil: #{jbuilder_parser.ast_parser.nil?}" if jbuilder_parser.respond_to?(:ast_parser)
+            if jbuilder_parser.respond_to?(:ast_parser) && jbuilder_parser.ast_parser && jbuilder_parser.ast_parser.respond_to?(:partial_components)
+              puts "🔍 DEBUG: partial_components count: #{jbuilder_parser.ast_parser.partial_components.size}"
+            end
+          end
+          
+          if jbuilder_parser.respond_to?(:ast_parser) && 
+             jbuilder_parser.ast_parser && 
+             jbuilder_parser.ast_parser.respond_to?(:partial_components) &&
+             jbuilder_parser.ast_parser.partial_components.any?
+            puts "📦 Merging #{jbuilder_parser.ast_parser.partial_components.size} components" if ENV['RAILS_OPENAPI_DEBUG']
+            all_components.merge!(jbuilder_parser.ast_parser.partial_components)
+          end
+          
           schema = Processors::AstToSchemaProcessor.new.process_to_schema(ast_node)
           schemas[route] = {
             schema: schema,
@@ -106,7 +127,7 @@ module RailsOpenapiGen
         end
       end
 
-      Generators::YamlGenerator.new(schemas).generate
+      Generators::YamlGenerator.new(schemas, components: all_components).generate
       puts '✅ OpenAPI specification generated successfully!'
     end
 

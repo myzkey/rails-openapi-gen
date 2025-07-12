@@ -1,0 +1,28 @@
+---
+type: object
+properties:
+  id:
+    type: integer
+    description: Post unique identifier
+  title:
+    type: string
+    description: Post title
+  content:
+    type: string
+    description: Post content body
+  published:
+    type: boolean
+    description: Whether the post is published
+  created_at:
+    type: string
+    description: Post creation timestamp
+  updated_at:
+    type: string
+    description: Last update timestamp
+required:
+- id
+- title
+- content
+- published
+- created_at
+- updated_at

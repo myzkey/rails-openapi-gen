@@ -1,0 +1,53 @@
+---
+"/api/users/{user_id}/posts/{id}":
+  get:
+    summary: Show Api/post
+    operationId: api_posts_show
+    tags:
+    - Api
+    parameters:
+    - name: user_id
+      in: path
+      required: true
+      schema:
+        type: string
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                post:
+                  "$ref": "#/components/schemas/ApiPostsPost"
+                author:
+                  type: object
+                  properties:
+                    user:
+                      "$ref": "#/components/schemas/ApiUsersUser"
+                  required:
+                  - user
+                tags:
+                  type: array
+                  description: Post tags for categorization
+                comments_count:
+                  type: integer
+                  description: Total number of comments
+                likes_count:
+                  type: integer
+                  description: Total number of likes
+                published_at:
+                  type: string
+                  description: Publication timestamp
+              required:
+              - post
+              - author
+              - tags
+              - comments_count
+              - likes_count

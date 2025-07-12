@@ -6,12 +6,14 @@ require "fileutils"
 module RailsOpenapiGen
   module Generators
     class YamlGenerator
-      attr_reader :schemas
+      attr_reader :schemas, :components
 
       # Initializes YAML generator with schemas data
-      # @param schemas [Hash] Hash of route information and schemas
-      def initialize(schemas)
+      # @param schemas [Hash] Hash of route information and schemas  
+      # @param components [Hash] Hash of component schemas from partials
+      def initialize(schemas, components: {})
         @schemas = schemas
+        @components = components
         @config = RailsOpenapiGen.configuration
         @base_path = @config.output_directory
       end
@@ -34,7 +36,8 @@ module RailsOpenapiGen
         end
 
         if @config.split_files?
-          write_paths_files(paths_data)
+          write_endpoint_files(paths_data)
+          write_component_files if @components && @components.any?
           write_main_openapi_file
         else
           write_single_file(paths_data)
@@ -63,12 +66,42 @@ module RailsOpenapiGen
         false
       end
 
-      # Creates necessary output directories
+      # Creates necessary output directories and cleans existing path files
       # @return [void]
       def setup_directories
         FileUtils.mkdir_p(@base_path)
         if @config.split_files?
-          FileUtils.mkdir_p(File.join(@base_path, "paths"))
+          paths_dir = File.join(@base_path, "paths")
+          FileUtils.mkdir_p(paths_dir)
+          # Clean existing path files to prevent merging with stale data
+          clean_paths_directory(paths_dir)
+          
+          # Create components directory for partial components
+          if @components && @components.any?
+            components_dir = File.join(@base_path, "components", "schemas")
+            FileUtils.mkdir_p(components_dir)
+            clean_components_directory(components_dir)
+          end
+        end
+      end
+
+      # Cleans existing YAML files from the paths directory
+      # @param paths_dir [String] Path to the paths directory
+      # @return [void]
+      def clean_paths_directory(paths_dir)
+        Dir[File.join(paths_dir, "*.yaml")].each do |file|
+          File.delete(file)
+          puts "🗑️  Removed existing path file: #{File.basename(file)}" if ENV['RAILS_OPENAPI_DEBUG']
+        end
+      end
+
+      # Cleans existing YAML files from the components directory
+      # @param components_dir [String] Path to the components directory
+      # @return [void]
+      def clean_components_directory(components_dir)
+        Dir[File.join(components_dir, "*.yaml")].each do |file|
+          File.delete(file)
+          puts "🗑️  Removed existing component file: #{File.basename(file)}" if ENV['RAILS_OPENAPI_DEBUG']
         end
       end
 
@@ -121,18 +154,18 @@ module RailsOpenapiGen
         operation
       end
 
-      # Writes path data to separate YAML files grouped by resource
+      # Writes path data to separate YAML files for each endpoint
       # @param paths_data [Hash] OpenAPI paths data
       # @return [void]
-      def write_paths_files(paths_data)
-        grouped_paths = paths_data.group_by { |path, _| extract_resource_name(path) }
+      def write_endpoint_files(paths_data)
+        paths_data.each do |path, operations|
+          endpoint_name = generate_endpoint_filename(path)
+          file_data = { path => operations }
 
-        grouped_paths.each do |resource, paths|
-          file_data = {}
-          paths.each { |path, operations| file_data[path] = operations }
-
-          file_path = File.join(@base_path, "paths", "#{resource}.yaml")
+          file_path = File.join(@base_path, "paths", "#{endpoint_name}.yaml")
           File.write(file_path, file_data.to_yaml)
+          
+          puts "📝 Written endpoint file: #{endpoint_name}.yaml" if ENV['RAILS_OPENAPI_DEBUG']
         end
       end
 
@@ -153,6 +186,11 @@ module RailsOpenapiGen
           paths.each do |path, operations|
             openapi_data["paths"][path] = operations
           end
+        end
+
+        # Add components section with external references if we have any components
+        if @components && @components.any?
+          openapi_data["components"] = generate_components_references
         end
 
         File.write(File.join(@base_path, @config.output_filename), openapi_data.to_yaml)
@@ -188,14 +226,19 @@ module RailsOpenapiGen
         end
       end
 
-      # Extracts resource name from API path
-      # @param path [String] API path
-      # @return [String] Resource name
-      def extract_resource_name(path)
-        parts = path.split('/')
-        return "root" if parts.empty? || parts.all?(&:empty?)
-
-        parts.reject { |p| p.empty? || p.start_with?('{') }.first || "root"
+      # Generates filename for endpoint-specific files
+      # @param path [String] API path (e.g., "/api/users/{id}")
+      # @return [String] Filename (e.g., "api_users_id")
+      def generate_endpoint_filename(path)
+        # Remove leading slash and replace special characters
+        clean_path = path.sub(/^\/+/, '')
+                         .gsub('/', '_')
+                         .gsub(/[{}]/, '')
+                         .gsub(/[^a-zA-Z0-9_]/, '_')
+                         .gsub(/_+/, '_')
+                         .gsub(/^_|_$/, '')
+        
+        clean_path.empty? ? 'root' : clean_path
       end
 
       # Converts snake_case string to human readable format
@@ -296,6 +339,66 @@ module RailsOpenapiGen
         schema["example"] = param[:example] if param[:example]
 
         schema
+      end
+
+      # Generate components section from collected partial components
+      # @return [Hash] Components section for OpenAPI spec
+      def generate_components_section
+        return {} if @components.empty?
+
+        components = {
+          "schemas" => {}
+        }
+
+        @components.each do |component_name, ast_node|
+          puts "📦 Generating component schema for: #{component_name}" if ENV['RAILS_OPENAPI_DEBUG']
+          
+          # Convert AST node to OpenAPI schema
+          schema = Processors::AstToSchemaProcessor.new.process_to_schema(ast_node)
+          components["schemas"][component_name] = schema
+        end
+
+        components
+      end
+
+      # Generate components section with external file references
+      # @return [Hash] Components section with $ref to external files
+      def generate_components_references
+        return {} if @components.empty?
+
+        components = {
+          "schemas" => {}
+        }
+
+        @components.each_key do |component_name|
+          puts "🔗 Creating reference for component: #{component_name}" if ENV['RAILS_OPENAPI_DEBUG']
+          
+          # Create $ref to external component file
+          components["schemas"][component_name] = {
+            "$ref" => "./components/schemas/#{component_name}.yaml"
+          }
+        end
+
+        components
+      end
+
+      # Write individual component files to components/schemas directory
+      # @return [void]
+      def write_component_files
+        return unless @components && @components.any?
+        
+        @components.each do |component_name, ast_node|
+          puts "📝 Writing component file: #{component_name}.yaml" if ENV['RAILS_OPENAPI_DEBUG']
+          
+          # Convert AST node to OpenAPI schema
+          schema = Processors::AstToSchemaProcessor.new.process_to_schema(ast_node)
+          
+          # Write to individual YAML file
+          file_path = File.join(@base_path, "components", "schemas", "#{component_name}.yaml")
+          File.write(file_path, schema.to_yaml)
+          
+          puts "✅ Component file written: #{component_name}.yaml" if ENV['RAILS_OPENAPI_DEBUG']
+        end
       end
     end
   end

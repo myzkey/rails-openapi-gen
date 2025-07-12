@@ -1,0 +1,22 @@
+---
+type: object
+properties:
+  id:
+    type: integer
+  street:
+    type: string
+  city:
+    type: string
+  state:
+    type: string
+  zip_code:
+    type: string
+  country:
+    type: string
+required:
+- id
+- street
+- city
+- state
+- zip_code
+- country

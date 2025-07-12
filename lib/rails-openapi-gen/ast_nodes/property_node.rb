@@ -7,12 +7,16 @@ module RailsOpenapiGen
     attr_reader :property_name # json.xxx
     attr_reader :comment_data # @openapi comments
     attr_reader :is_conditional # if/else
+    attr_reader :is_component_ref # whether this is a component reference
+    attr_reader :component_name # name of referenced component
 
-    def initialize(property_name:, comment_data: nil, is_conditional: false, parent: nil, metadata: {})
+    def initialize(property_name:, comment_data: nil, is_conditional: false, is_component_ref: false, component_name: nil, parent: nil, metadata: {})
       super(parent: parent, metadata: metadata)
       @property_name = property_name
       @comment_data = comment_data || CommentData.new
       @is_conditional = is_conditional
+      @is_component_ref = is_component_ref
+      @component_name = component_name
     end
 
     # Check if this property is required in OpenAPI schema
@@ -52,6 +56,8 @@ module RailsOpenapiGen
         property_name: @property_name,
         comment_data: @comment_data&.to_h,
         is_conditional: @is_conditional,
+        is_component_ref: @is_component_ref,
+        component_name: @component_name,
         required: required?,
         openapi_type: openapi_type,
         description: description,

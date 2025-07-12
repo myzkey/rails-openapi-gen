@@ -41,6 +41,11 @@ module RailsOpenapiGen::Processors
     # @param node [RailsOpenapiGen::AstNodes::PropertyNode] Property node
     # @return [Hash] Property schema
     def visit_property(node)
+      # If this is a component reference, return a $ref
+      if node.is_component_ref && node.component_name
+        return { '$ref' => "#/components/schemas/#{node.component_name}" }
+      end
+      
       schema = build_basic_schema(node)
       
       # Add enum if specified
