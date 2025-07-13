@@ -10,7 +10,7 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
       # @param method_name [Symbol] Method name
       # @param args [Array<Parser::AST::Node>] Method arguments
       # @return [Boolean] True if this detector handles the method call
-      def handles?(receiver, method_name, args = [])
+      def handles?(_receiver, _method_name, _args = [])
         raise NotImplementedError, "#{self} must implement #handles?"
       end
 
@@ -41,10 +41,10 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
       def json_receiver?(receiver)
         # Handle implicit json calls (receiver is nil in top-level context)
         return true if receiver.nil?
-        
+
         # Handle explicit json calls (json.property_name)
         return true if receiver.type == :send && receiver.children[0].nil? && receiver.children[1] == :json
-        
+
         false
       end
 
@@ -72,12 +72,12 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
       def args_contain_hash_with_keys?(args, keys)
         args.any? do |arg|
           next false unless arg.type == :hash
-          
+
           hash_keys = arg.children.map do |pair|
             key_node = pair.children.first
             key_node.type == :sym ? key_node.children.first : nil
           end.compact
-          
+
           (keys & hash_keys).any?
         end
       end
@@ -87,14 +87,12 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
       # @return [String, nil] String value or nil
       def extract_string_value(node)
         return nil unless node
-        
+
         case node.type
         when :str
           node.children.first
         when :sym
           node.children.first.to_s
-        else
-          nil
         end
       end
 
@@ -102,7 +100,7 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
       # @param node [Parser::AST::Node] Node to check
       # @return [Boolean] True if node is a literal
       def literal_node?(node)
-        [:str, :int, :float, :true, :false, :nil, :sym].include?(node.type)
+        %i[str int float true false nil sym].include?(node.type)
       end
     end
   end

@@ -16,10 +16,10 @@ module RailsOpenapiGen::Processors
     # @return [Hash] Complete OpenAPI response schema
     def generate_response_schema(root_node, operation_info = nil)
       return default_response_schema unless root_node
-      
+
       # Convert AST to schema
       schema = @ast_processor.process_to_schema(root_node)
-      
+
       # Build response object
       response = {
         description: operation_info&.dig(:response_description) || 'Successful response',
@@ -29,12 +29,12 @@ module RailsOpenapiGen::Processors
           }
         }
       }
-      
+
       # Add examples if available
       if operation_info&.dig(:examples)
         response[:content]['application/json'][:examples] = operation_info[:examples]
       end
-      
+
       {
         '200' => response
       }
@@ -46,7 +46,7 @@ module RailsOpenapiGen::Processors
     # @return [Hash] Complete OpenAPI operation
     def generate_operation(root_node, operation_info = nil)
       operation = {}
-      
+
       # Add operation-level information
       if operation_info
         operation[:operationId] = operation_info[:operation_id] if operation_info[:operation_id]
@@ -54,20 +54,20 @@ module RailsOpenapiGen::Processors
         operation[:description] = operation_info[:description] if operation_info[:description]
         operation[:tags] = operation_info[:tags] if operation_info[:tags]
       end
-      
+
       # Add responses
       operation[:responses] = generate_response_schema(root_node, operation_info)
-      
+
       # Add parameters if specified
       if operation_info&.dig(:parameters)
         operation[:parameters] = operation_info[:parameters]
       end
-      
+
       # Add request body if specified
       if operation_info&.dig(:request_body)
         operation[:requestBody] = operation_info[:request_body]
       end
-      
+
       operation
     end
 
@@ -88,7 +88,7 @@ module RailsOpenapiGen::Processors
     # @return [Hash] Component schema
     def generate_component_schema(root_node, schema_name)
       schema = @ast_processor.process_to_schema(root_node)
-      
+
       {
         schema_name => schema
       }
@@ -99,19 +99,19 @@ module RailsOpenapiGen::Processors
     # @return [Array<String>] Array of validation errors (empty if valid)
     def validate_schema(schema)
       errors = []
-      
+
       # Basic validation
       unless schema.is_a?(Hash)
         errors << "Schema must be a hash"
         return errors
       end
-      
+
       # Check for required fields in responses
       if schema.dig('200', 'content', 'application/json', 'schema')
         schema_obj = schema['200']['content']['application/json']['schema']
         errors.concat(validate_schema_object(schema_obj, 'root'))
       end
-      
+
       errors
     end
 
@@ -150,17 +150,17 @@ module RailsOpenapiGen::Processors
     # @return [Array<String>] Validation errors
     def validate_schema_object(schema, path)
       errors = []
-      
+
       unless schema.is_a?(Hash)
         errors << "Schema at #{path} must be a hash"
         return errors
       end
-      
+
       # Check for missing type
       unless schema[:type] || schema['type']
         errors << "Schema at #{path} is missing type"
       end
-      
+
       # Validate properties if it's an object
       type = schema[:type] || schema['type']
       if type == 'object'
@@ -171,7 +171,7 @@ module RailsOpenapiGen::Processors
           end
         end
       end
-      
+
       # Validate array items
       if type == 'array'
         items = schema[:items] || schema['items']
@@ -179,7 +179,7 @@ module RailsOpenapiGen::Processors
           errors.concat(validate_schema_object(items, "#{path}[]"))
         end
       end
-      
+
       errors
     end
 
@@ -190,9 +190,9 @@ module RailsOpenapiGen::Processors
     # @return [void]
     def extract_missing_comments_recursive(node, path, missing)
       return unless node
-      
+
       # Check if node has missing comment
-      if node.respond_to?(:comment_data) && 
+      if node.respond_to?(:comment_data) &&
          (!node.comment_data || node.comment_data.description.nil?)
         missing << {
           path: path.join('.'),
@@ -200,7 +200,7 @@ module RailsOpenapiGen::Processors
           type: node.class.name.split('::').last
         }
       end
-      
+
       # Recurse into child nodes
       if node.respond_to?(:properties)
         node.properties.each do |child|

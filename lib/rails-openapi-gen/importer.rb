@@ -82,7 +82,7 @@ module RailsOpenapiGen
       end
 
       # Third pass: process partial files
-      process_partial_files()
+      process_partial_files
 
       puts "✅ Updated #{processed_count} Jbuilder templates with OpenAPI comments"
     end
@@ -94,7 +94,7 @@ module RailsOpenapiGen
     # @return [Array<Hash>] Properties in legacy format
     def extract_properties_from_ast(ast_node)
       properties = []
-      
+
       if ast_node.respond_to?(:properties)
         ast_node.properties.each do |property|
           properties << {
@@ -105,7 +105,7 @@ module RailsOpenapiGen
           }
         end
       end
-      
+
       properties
     end
 
@@ -128,7 +128,7 @@ module RailsOpenapiGen
     # @return [String] Normalized path
     def normalize_path(path)
       # Remove trailing slashes and normalize
-      path.gsub(/\/$/, '')
+      path.gsub(%r{/$}, '')
     end
 
     # Extracts resource name from OpenAPI path
@@ -143,7 +143,7 @@ module RailsOpenapiGen
       # /posts/{post_id}/comments -> comments
 
       # Remove leading slash and split by '/'
-      segments = path.sub(/^\//, '').split('/')
+      segments = path.sub(%r{^/}, '').split('/')
 
       # Find the last segment that doesn't contain parameters
       resource_segment = segments.reverse.find { |segment| !segment.include?('{') }
@@ -165,7 +165,7 @@ module RailsOpenapiGen
 
           # Also store the full schema if it's from the root level
           # This helps with matching post/user objects at the top level
-          if parent_key.nil? && (key == 'post' || key == 'posts' || key == 'user' || key == 'users')
+          if parent_key.nil? && %w[post posts user users].include?(key)
             @partial_schemas["_#{key.singularize}"] = schema
           end
 
@@ -224,7 +224,7 @@ module RailsOpenapiGen
     # Finds schema with common properties for partial
     # @param partial_name [String] Name of the partial
     # @return [Hash, nil] Schema with common properties or nil
-    def find_common_properties_schema(partial_name)
+    def find_common_properties_schema(_partial_name)
       # Find schemas that might represent this partial
       # by looking for schemas with properties that match the partial content
       partial_path = Dir.glob(Rails.root.join("app/views/**/_{partial_name}.json.jbuilder")).first
@@ -236,18 +236,18 @@ module RailsOpenapiGen
 
       # Find all schemas that could match
       candidate_schemas = []
-      @partial_schemas.each do |key, schema|
+      @partial_schemas.each do |_key, schema|
         next unless schema['properties']
 
         # Calculate how many properties match
         matching_props = partial_properties & schema['properties'].keys
-        if matching_props.size >= partial_properties.size * 0.5 # At least 50% match
-          candidate_schemas << {
-            schema: schema,
-            match_count: matching_props.size,
-            properties: schema['properties'].slice(*matching_props)
-          }
-        end
+        next unless matching_props.size >= partial_properties.size * 0.5 # At least 50% match
+
+        candidate_schemas << {
+          schema: schema,
+          match_count: matching_props.size,
+          properties: schema['properties'].slice(*matching_props)
+        }
       end
 
       return nil if candidate_schemas.empty?
@@ -277,16 +277,16 @@ module RailsOpenapiGen
         # Check if this property exists in all candidates with the same type
         is_common = candidate_schemas.all? do |candidate|
           candidate[:schema]['properties'][prop_name] &&
-          candidate[:schema]['properties'][prop_name]['type'] == prop_schema['type']
+            candidate[:schema]['properties'][prop_name]['type'] == prop_schema['type']
         end
 
-        if is_common
-          # Use the most detailed schema for this property
-          # (the one with the most attributes like description, enum, etc.)
-          most_detailed = candidate_schemas.map { |c| c[:schema]['properties'][prop_name] }
-                                          .max_by { |p| p.keys.size }
-          common_props[prop_name] = most_detailed
-        end
+        next unless is_common
+
+        # Use the most detailed schema for this property
+        # (the one with the most attributes like description, enum, etc.)
+        most_detailed = candidate_schemas.map { |c| c[:schema]['properties'][prop_name] }
+                                         .max_by { |p| p.keys.size }
+        common_props[prop_name] = most_detailed
       end
 
       common_props
@@ -295,7 +295,7 @@ module RailsOpenapiGen
     # Finds schema by matching property names in partial
     # @param partial_name [String] Name of the partial
     # @return [Hash, nil] Matching schema or nil
-    def find_schema_by_properties(partial_name)
+    def find_schema_by_properties(_partial_name)
       # Try to match by analyzing the partial content
       # This is a more complex matching strategy
       partial_path = Dir.glob(Rails.root.join("app/views/**/_{partial_name}.json.jbuilder")).first
@@ -308,7 +308,7 @@ module RailsOpenapiGen
       best_match = nil
       best_score = 0
 
-      @partial_schemas.each do |key, schema|
+      @partial_schemas.each do |_key, schema|
         next unless schema['properties']
 
         matching_props = property_names & schema['properties'].keys
@@ -403,7 +403,7 @@ module RailsOpenapiGen
     # @param operation [Hash, nil] OpenAPI operation data
     # @param route [Hash, nil] Route information
     # @return [String] Updated content with comments
-    def generate_commented_jbuilder(content, properties, response_schema, operation, route)
+    def generate_commented_jbuilder(content, _properties, response_schema, operation, _route)
       lines = content.lines
       new_lines = []
       current_schema_stack = [response_schema]
@@ -441,15 +441,14 @@ module RailsOpenapiGen
           # Handle json.array! @posts do |post| patterns
           match = line.strip.match(/^json\.array!\s+@(\w+)\s+do\s+\|(\w+)\|/)
           if match
-            collection_name = match[1]  # e.g., "posts"
-            item_name = match[2]        # e.g., "post"
+            item_name = match[2] # e.g., "post"
 
             # Add comment for the array itself if this is a root-level array
-            if current_schema_stack.size == 1 && current_schema_stack.first&.dig('type') == 'array'
-              unless has_openapi_comment?(lines, index)
-                array_comment = "# @openapi root:array items:object"
-                new_lines << (' ' * current_indent) + array_comment + "\n"
-              end
+            if current_schema_stack.size == 1 && current_schema_stack.first&.dig('type') == 'array' && !has_openapi_comment?(
+              lines, index
+            )
+              array_comment = "# @openapi root:array items:object"
+              new_lines << ((' ' * current_indent) + array_comment + "\n")
             end
 
             # Look for array item schema - try response_schema['items'] first
@@ -481,7 +480,7 @@ module RailsOpenapiGen
               # Add comment for the array property itself if needed
               if property_schema && !has_openapi_comment?(lines, index)
                 comment = generate_property_comment(property_name, property_schema)
-                new_lines << (' ' * current_indent) + comment + "\n" if comment
+                new_lines << ((' ' * current_indent) + comment + "\n") if comment
               end
 
               # If it's an array with items, push the items schema
@@ -489,7 +488,7 @@ module RailsOpenapiGen
                 current_schema_stack << property_schema['items']
                 indent_stack << current_indent
                 in_block_stack << true
-              elif property_schema && property_schema['type'] == 'array' && property_schema['items']
+                elif property_schema && property_schema['type'] == 'array' && property_schema['items']
                 # Try to find schema by item name
                 item_schema = @partial_schemas[item_name.singularize] || @partial_schemas[item_name]
                 if item_schema
@@ -500,19 +499,12 @@ module RailsOpenapiGen
               end
             end
           end
-        elsif line.strip.match(/^json\.partial!.*['"](\w+)\/_(\w+)['"]/)
+        elsif line.strip.match(%r{^json\.partial!.*['"](\w+)/_(\w+)['"]})
           # Handle partials - check if next line should have nested properties
-          match = line.strip.match(/^json\.partial!.*['"](\w+)\/_(\w+)['"]/)
+          match = line.strip.match(%r{^json\.partial!.*['"](\w+)/_(\w+)['"]})
           if match
-            partial_dir = match[1]
-            partial_name = match[2]
-
-            # Check if this is inside a block (like json.author do)
-            if in_block_stack.any? && current_schema_stack.last
-              # We're inside a block, current schema should have the right context
-              current_schema = current_schema_stack.last
-              # The partial will handle its own properties
-            end
+            # Extract but don't store partial info as it's not used in current implementation
+            # The partial will handle its own properties when processed
           end
         # Check if this line is a json property (general case)
         elsif json_property_line?(line)
@@ -527,7 +519,7 @@ module RailsOpenapiGen
               if property_schema && !has_openapi_comment?(lines, index)
                 # Add comment before this line
                 comment = generate_property_comment(property_name, property_schema)
-                new_lines << (' ' * current_indent) + comment + "\n" if comment
+                new_lines << ((' ' * current_indent) + comment + "\n") if comment
               end
 
               # Check if this line opens a block
@@ -568,6 +560,7 @@ module RailsOpenapiGen
     def should_add_operation_comment(content, operation)
       # Check if operation comment already exists
       return false unless operation
+
       !content.include?('@openapi_operation') &&
         (operation['summary'] || operation['description'] || operation['tags'])
     end

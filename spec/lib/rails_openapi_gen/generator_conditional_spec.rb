@@ -47,7 +47,7 @@ RSpec.describe RailsOpenapiGen::Generator do
 
         expect(schema['type']).to eq('object')
         expect(schema['properties']).to include('id', 'name', 'profile', 'email')
-        
+
         # Only non-conditional required properties should be in required array
         expect(schema['required']).to include('id', 'name', 'email')
         expect(schema['required']).not_to include('profile')
@@ -55,11 +55,11 @@ RSpec.describe RailsOpenapiGen::Generator do
 
       it 'excludes nested conditional properties from required array' do
         schema = generator.send(:build_schema, properties)
-        
+
         profile_schema = schema['properties']['profile']
         expect(profile_schema['type']).to eq('object')
         expect(profile_schema['properties']).to include('bio', 'verified')
-        
+
         # Nested conditional properties should not be in required array
         # When all nested properties are conditional, required field should not be present
         expect(profile_schema['required']).to be_nil
@@ -94,7 +94,7 @@ RSpec.describe RailsOpenapiGen::Generator do
         expect(schema['type']).to eq('array')
         expect(schema['items']['type']).to eq('object')
         expect(schema['items']['properties']).to include('id', 'optional_field')
-        
+
         # Only non-conditional required properties should be in required array
         expect(schema['items']['required']).to include('id')
         expect(schema['items']['required']).not_to include('optional_field')

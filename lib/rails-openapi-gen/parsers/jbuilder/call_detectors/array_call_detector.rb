@@ -12,7 +12,7 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
       # @param method_name [Symbol] Method name
       # @param args [Array<Parser::AST::Node>] Method arguments
       # @return [Boolean] True if this is an array call
-      def handles?(receiver, method_name, args = [])
+      def handles?(receiver, method_name, _args = [])
         result = array_call?(receiver, method_name)
         if ENV['RAILS_OPENAPI_DEBUG']
           puts "🔍 DEBUG: ArrayCallDetector.handles? for #{method_name}"
@@ -54,10 +54,10 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
       # @return [Boolean] True if hash contains partial key
       def has_partial_key?(hash_node)
         return false unless hash_node.type == :hash
-        
+
         hash_node.children.any? do |pair|
           next false unless pair.type == :pair
-          
+
           key, _value = pair.children
           key.type == :sym && key.children.first == :partial
         end

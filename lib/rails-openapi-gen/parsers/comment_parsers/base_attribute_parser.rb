@@ -7,11 +7,9 @@ module RailsOpenapiGen
 
       def clean_value(value)
         value = value.strip
-        
+
         if value.start_with?('"') && value.end_with?('"')
           value[1..-2]
-        elsif value.start_with?('[') && value.end_with?(']')
-          value
         else
           value
         end
@@ -19,10 +17,10 @@ module RailsOpenapiGen
 
       def parse_enum(value)
         return value unless value.is_a?(String) && value.start_with?('[') && value.end_with?(']')
-        
+
         inner = value[1..-2]
-        
-        items = inner.split(',').map do |item|
+
+        inner.split(',').map do |item|
           item = item.strip
           if item.start_with?('"') && item.end_with?('"')
             item[1..-2]
@@ -30,8 +28,6 @@ module RailsOpenapiGen
             item
           end
         end
-        
-        items
       end
 
       def parse_key_value_pairs(content)

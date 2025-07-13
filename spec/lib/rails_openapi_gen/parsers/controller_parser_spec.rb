@@ -25,7 +25,7 @@ RSpec.describe RailsOpenapiGen::Parsers::ControllerParser do
 
   before do
     allow(Rails).to receive(:root).and_return(Pathname.new('/test'))
-    
+
     # Mock Parser to avoid version compatibility issues
     allow(Parser::CurrentRuby).to receive(:parse) do |content|
       if content.include?('def index') || content.include?('def show')
@@ -33,7 +33,7 @@ RSpec.describe RailsOpenapiGen::Parsers::ControllerParser do
         ast = double('ast', type: :class)
         ast
       elsif content == 'invalid ruby syntax {{{'
-        raise Parser::SyntaxError.new('invalid syntax')
+        raise Parser::SyntaxError, 'invalid syntax'
       else
         double('generic_ast', type: :unknown)
       end
@@ -61,15 +61,16 @@ RSpec.describe RailsOpenapiGen::Parsers::ControllerParser do
         allow(File).to receive(:read).with(controller_path).and_return(controller_content)
         allow(parser.template_processor).to receive(:extract_template_path).and_return(nil)
         allow(parser.template_processor).to receive(:find_default_template).and_return('/test/app/views/users/index.json.jbuilder')
-        
+
         # Mock the find_action_method to return a proper action node
         action_node = double('action_node', type: :def, children: [:index], location: double('location', line: 7))
         allow(parser).to receive(:find_action_method).and_return(action_node)
-        
+
         # Mock extract_parameters_from_comments to return proper parameters
         parameters = {
           path_parameters: [{ name: 'id', type: 'integer', description: 'User ID' }],
-          query_parameters: [{ name: 'include', type: 'string', description: 'Include relationships', required: false }],
+          query_parameters: [{ name: 'include', type: 'string', description: 'Include relationships',
+                               required: false }],
           body_parameters: [{ name: 'name', type: 'string', description: 'User name', required: true }]
         }
         allow(parser).to receive(:extract_parameters_from_comments).and_return(parameters)
@@ -117,7 +118,7 @@ RSpec.describe RailsOpenapiGen::Parsers::ControllerParser do
         controller_path = '/test/app/controllers/users_controller.rb'
         allow(File).to receive(:exist?).with(controller_path).and_return(true)
         allow(File).to receive(:read).with(controller_path).and_return(controller_content)
-        
+
         # Mock find_action_method to return nil for missing action
         allow(parser).to receive(:find_action_method).and_return(nil)
       end
@@ -171,7 +172,7 @@ RSpec.describe RailsOpenapiGen::Parsers::ControllerParser do
       processor = double('ActionMethodProcessor')
       allow(described_class::ActionMethodProcessor).to receive(:new).and_return(processor)
       allow(processor).to receive(:process)
-      
+
       if route[:action] == 'index'
         index_method = double('index_method', type: :def, children: [:index, double('args'), double('body')])
         allow(processor).to receive(:action_node).and_return(index_method)
@@ -211,8 +212,9 @@ RSpec.describe RailsOpenapiGen::Parsers::ControllerParser do
     let(:action_node) { double('action_node') }
 
     it 'uses template processor to extract path' do
-      expect(parser.template_processor).to receive(:extract_template_path).with(action_node, route).and_return('/explicit/path.jbuilder')
-      
+      expect(parser.template_processor).to receive(:extract_template_path).with(action_node,
+                                                                                route).and_return('/explicit/path.jbuilder')
+
       result = parser.send(:extract_template_path, action_node)
       expect(result).to eq('/explicit/path.jbuilder')
     end
@@ -220,7 +222,7 @@ RSpec.describe RailsOpenapiGen::Parsers::ControllerParser do
     it 'falls back to default template when no explicit path found' do
       expect(parser.template_processor).to receive(:extract_template_path).with(action_node, route).and_return(nil)
       expect(parser.template_processor).to receive(:find_default_template).with(route).and_return('/default/path.jbuilder')
-      
+
       result = parser.send(:extract_template_path, action_node)
       expect(result).to eq('/default/path.jbuilder')
     end
@@ -286,7 +288,7 @@ RSpec.describe RailsOpenapiGen::Parsers::ControllerParser do
 
       it 'returns empty parameter arrays' do
         action_node = double('action_node', type: :def, children: [:index], location: double('location', line: 3))
-        
+
         result = parser.send(:extract_parameters_from_comments, content_without_comments, action_node)
 
         expect(result[:path_parameters]).to be_empty
@@ -309,7 +311,7 @@ RSpec.describe RailsOpenapiGen::Parsers::ControllerParser do
       # Mock AST with show method
       show_method = double('show_method', type: :def, children: [:show, double('args'), double('body')])
       index_method = double('index_method', type: :def, children: [:index, double('args'), double('body')])
-      
+
       ast_node = double('ast')
       allow(ast_node).to receive(:each_node).with(:def).and_yield(show_method).and_yield(index_method)
       ast_node
@@ -326,10 +328,10 @@ RSpec.describe RailsOpenapiGen::Parsers::ControllerParser do
       it 'finds and stores the matching action method' do
         show_method = double('show_method', type: :def, children: [:show, double('args'), double('body')])
         processor.process(ast)
-        
+
         # Since we can't easily test the real processor, let's set the action_node directly for this test
         processor.instance_variable_set(:@action_node, show_method)
-        
+
         expect(processor.action_node).not_to be_nil
         expect(processor.action_node.children[0]).to eq(:show)
       end
@@ -422,14 +424,15 @@ RSpec.describe RailsOpenapiGen::Parsers::ControllerParser do
         allow(File).to receive(:read).with(controller_path).and_return(complex_controller_content)
         allow(parser.template_processor).to receive(:extract_template_path).and_return(nil)
         allow(parser.template_processor).to receive(:find_default_template).and_return('/test/app/views/api/v1/users/show.json.jbuilder')
-        
+
         # Mock the action finding and parameter extraction
         action_node = double('action_node', type: :def, children: [:show], location: double('location', line: 8))
         allow(parser).to receive(:find_action_method).and_return(action_node)
-        
+
         parameters = {
           path_parameters: [{ name: 'id', type: 'integer', description: 'User ID', required: 'true' }],
-          query_parameters: [{ name: 'include', type: 'string', description: 'Include user relationships', required: 'false', enum: ['posts', 'profile', 'settings'] }],
+          query_parameters: [{ name: 'include', type: 'string', description: 'Include user relationships',
+                               required: 'false', enum: %w[posts profile settings] }],
           body_parameters: []
         }
         allow(parser).to receive(:extract_parameters_from_comments).and_return(parameters)
@@ -444,14 +447,14 @@ RSpec.describe RailsOpenapiGen::Parsers::ControllerParser do
         parameters = result[:parameters]
         expect(parameters[:path_parameters].size).to eq(1)
         expect(parameters[:query_parameters].size).to eq(1)
-        
+
         path_param = parameters[:path_parameters].first
         expect(path_param[:name]).to eq('id')
         expect(path_param[:required]).to eq('true')
 
         query_param = parameters[:query_parameters].first
         expect(query_param[:name]).to eq('include')
-        expect(query_param[:enum]).to eq(['posts', 'profile', 'settings'])
+        expect(query_param[:enum]).to eq(%w[posts profile settings])
       end
     end
   end

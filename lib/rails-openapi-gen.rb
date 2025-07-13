@@ -51,10 +51,10 @@ module RailsOpenapiGen
     # @return [void]
     def run
       puts "🔍 Checking for missing comments and uncommitted changes..."
-      
+
       # Run OpenAPI generation to check for missing comments
       system('bin/rails openapi:generate') || system('bundle exec rails openapi:generate')
-      
+
       # Check for uncommitted changes in openapi directory
       if system('git diff --quiet docs/api/ 2>/dev/null')
         puts "✅ All checks passed!"
@@ -89,42 +89,40 @@ module RailsOpenapiGen
       all_components = {}
 
       filtered_routes.each do |route|
-        begin
-          controller_info = Parsers::ControllerParser.new(route).parse
+        controller_info = Parsers::ControllerParser.new(route).parse
 
-          next unless controller_info[:jbuilder_path]
+        next unless controller_info[:jbuilder_path]
 
-          jbuilder_parser = Parsers::Jbuilder::JbuilderParser.new(controller_info[:jbuilder_path])
-          ast_node = jbuilder_parser.parse(parser_version: parser_version)
-          
-          # Collect components from this parser
-          if ENV['RAILS_OPENAPI_DEBUG']
-            puts "🔍 DEBUG: jbuilder_parser has ast_parser: #{jbuilder_parser.respond_to?(:ast_parser)}"
-            puts "🔍 DEBUG: ast_parser is nil: #{jbuilder_parser.ast_parser.nil?}" if jbuilder_parser.respond_to?(:ast_parser)
-            if jbuilder_parser.respond_to?(:ast_parser) && jbuilder_parser.ast_parser && jbuilder_parser.ast_parser.respond_to?(:partial_components)
-              puts "🔍 DEBUG: partial_components count: #{jbuilder_parser.ast_parser.partial_components.size}"
-            end
+        jbuilder_parser = Parsers::Jbuilder::JbuilderParser.new(controller_info[:jbuilder_path])
+        ast_node = jbuilder_parser.parse(parser_version: parser_version)
+
+        # Collect components from this parser
+        if ENV['RAILS_OPENAPI_DEBUG']
+          puts "🔍 DEBUG: jbuilder_parser has ast_parser: #{jbuilder_parser.respond_to?(:ast_parser)}"
+          puts "🔍 DEBUG: ast_parser is nil: #{jbuilder_parser.ast_parser.nil?}" if jbuilder_parser.respond_to?(:ast_parser)
+          if jbuilder_parser.respond_to?(:ast_parser) && jbuilder_parser.ast_parser && jbuilder_parser.ast_parser.respond_to?(:partial_components)
+            puts "🔍 DEBUG: partial_components count: #{jbuilder_parser.ast_parser.partial_components.size}"
           end
-          
-          if jbuilder_parser.respond_to?(:ast_parser) && 
-             jbuilder_parser.ast_parser && 
-             jbuilder_parser.ast_parser.respond_to?(:partial_components) &&
-             jbuilder_parser.ast_parser.partial_components.any?
-            puts "📦 Merging #{jbuilder_parser.ast_parser.partial_components.size} components" if ENV['RAILS_OPENAPI_DEBUG']
-            all_components.merge!(jbuilder_parser.ast_parser.partial_components)
-          end
-          
-          schema = Processors::AstToSchemaProcessor.new.process_to_schema(ast_node)
-          schemas[route] = {
-            schema: schema,
-            parameters: controller_info[:parameters] || {},
-            operation: {} # Operation data is not available in AST approach
-          }
-        rescue => e
-          puts "❌ ERROR processing route #{route[:method]} #{route[:path]}: #{e.class} - #{e.message}" if ENV['RAILS_OPENAPI_DEBUG']
-          puts "❌ ERROR at: #{e.backtrace.first(3).join("\n")}" if ENV['RAILS_OPENAPI_DEBUG']
-          raise
         end
+
+        if jbuilder_parser.respond_to?(:ast_parser) &&
+           jbuilder_parser.ast_parser &&
+           jbuilder_parser.ast_parser.respond_to?(:partial_components) &&
+           jbuilder_parser.ast_parser.partial_components.any?
+          puts "📦 Merging #{jbuilder_parser.ast_parser.partial_components.size} components" if ENV['RAILS_OPENAPI_DEBUG']
+          all_components.merge!(jbuilder_parser.ast_parser.partial_components)
+        end
+
+        schema = Processors::AstToSchemaProcessor.new.process_to_schema(ast_node)
+        schemas[route] = {
+          schema: schema,
+          parameters: controller_info[:parameters] || {},
+          operation: {} # Operation data is not available in AST approach
+        }
+      rescue StandardError => e
+        puts "❌ ERROR processing route #{route[:method]} #{route[:path]}: #{e.class} - #{e.message}" if ENV['RAILS_OPENAPI_DEBUG']
+        puts "❌ ERROR at: #{e.backtrace.first(3).join("\n")}" if ENV['RAILS_OPENAPI_DEBUG']
+        raise
       end
 
       Generators::YamlGenerator.new(schemas, components: all_components).generate
@@ -147,13 +145,13 @@ module RailsOpenapiGen
         property_name = prop[:property] || prop["property"]
         comment_data = prop[:comment_data] || prop["comment_data"]
         is_conditional = prop[:is_conditional] || prop["is_conditional"]
-        
+
         next unless property_name
 
         if comment_data
           property_schema = build_property_schema(prop)
           schema["properties"][property_name] = property_schema
-          
+
           # Add to required unless explicitly marked as not required OR is conditional
           required = comment_data[:required] || comment_data["required"]
           unless required == false || required == "false" || is_conditional
@@ -181,33 +179,33 @@ module RailsOpenapiGen
     def build_property_schema(prop)
       comment_data = prop[:comment_data] || prop["comment_data"]
       property_type = comment_data[:type] || comment_data["type"] || "string"
-      
+
       property_schema = {
         "type" => property_type
       }
-      
+
       # Add description if present
       if comment_data[:description] || comment_data["description"]
         property_schema["description"] = comment_data[:description] || comment_data["description"]
       end
-      
+
       # Add enum if present
       if comment_data[:enum] || comment_data["enum"]
         property_schema["enum"] = comment_data[:enum] || comment_data["enum"]
       end
-      
+
       # Handle nested object properties
       if property_type == "object" && (prop[:nested_properties] || prop["nested_properties"])
         nested_properties = prop[:nested_properties] || prop["nested_properties"]
         nested_schema = build_schema(nested_properties)
         property_schema["properties"] = nested_schema["properties"]
-        
+
         # Only add required array if there are non-conditional required properties
         if nested_schema["required"] && !nested_schema["required"].empty?
           property_schema["required"] = nested_schema["required"]
         end
       end
-      
+
       property_schema
     end
 
@@ -216,15 +214,15 @@ module RailsOpenapiGen
     # @return [Hash] Array schema object
     def build_array_schema(properties)
       array_root = properties.find { |p| p[:is_array_root] || p["is_array_root"] }
-      
+
       unless array_root
         raise ArgumentError, "No array root property found in properties"
       end
-      
+
       schema = {
         "type" => "array"
       }
-      
+
       # Build items schema from array_item_properties
       array_item_properties = array_root[:array_item_properties] || array_root["array_item_properties"]
       if array_item_properties && !array_item_properties.empty?
@@ -233,11 +231,11 @@ module RailsOpenapiGen
       else
         schema["items"] = { "type" => "object" }
       end
-      
+
       schema
     end
 
-    # Note: Old hash-based processing methods have been removed
+    # NOTE: Old hash-based processing methods have been removed
     # The system now uses AST-based processing with AstToSchemaProcessor
   end
 end

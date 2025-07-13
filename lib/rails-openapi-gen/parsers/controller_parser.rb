@@ -13,7 +13,9 @@ module RailsOpenapiGen
       # @param template_processor [ResponseTemplateProcessor] Template processor for extracting template paths
       def initialize(route, template_processor: nil)
         @route = route
-        @template_processor = template_processor || RailsOpenapiGen::Parsers::TemplateProcessors::JbuilderTemplateProcessor.new(route[:controller], route[:action])
+        @template_processor = template_processor || RailsOpenapiGen::Parsers::TemplateProcessors::JbuilderTemplateProcessor.new(
+          route[:controller], route[:action]
+        )
       end
 
       # Parses controller to find action method and response template
@@ -24,13 +26,13 @@ module RailsOpenapiGen
 
         content = File.read(controller_path)
         ast = Parser::CurrentRuby.parse(content)
-        
+
         action_node = find_action_method(ast)
         return {} unless action_node
 
         template_path = extract_template_path(action_node)
         parameters = extract_parameters_from_comments(content, action_node)
-        
+
         {
           controller_path: controller_path,
           jbuilder_path: template_path, # Keep existing key name for backward compatibility
@@ -48,14 +50,14 @@ module RailsOpenapiGen
         possible_paths = [
           Rails.root.join("app", "controllers", "#{controller_name}.rb")
         ]
-        
+
         # Handle nested controllers
         if route[:controller].include?("/")
           parts = route[:controller].split("/")
           nested_path = Rails.root.join("app", "controllers", *parts[0..-2], "#{parts.last}_controller.rb")
           possible_paths << nested_path
         end
-        
+
         found_path = possible_paths.find { |path| File.exist?(path.to_s) }
         found_path&.to_s
       end
@@ -79,10 +81,10 @@ module RailsOpenapiGen
 
         # Try to extract explicit template path from action
         template_path = template_processor.extract_template_path(action_node, route)
-        
+
         # If no explicit template found, check for default template
         template_path ||= template_processor.find_default_template(route)
-        
+
         template_path
       end
 
@@ -95,28 +97,28 @@ module RailsOpenapiGen
 
         lines = content.lines
         action_line = action_node.location.line - 1 # Convert to 0-based index
-        
+
         # Look for comments before the action method
         parameters = {
           path_parameters: [],
           query_parameters: [],
           body_parameters: []
         }
-        
+
         comment_parser = RailsOpenapiGen::Parsers::CommentParser.new
-        
+
         # Scan backwards from the action line to find comments
         (action_line - 1).downto(0) do |line_index|
           line = lines[line_index].strip
-          
+
           # Stop if we encounter a non-comment line that's not empty
           break if !line.empty? && !line.start_with?('#')
-          
+
           next if line.empty? || !line.include?('@openapi')
-          
+
           parsed = comment_parser.parse(line)
           next unless parsed
-          
+
           # Handle different comment formats
           if line.include?('path_parameter')
             # Extract the parameter info from parsed attributes
@@ -166,7 +168,7 @@ module RailsOpenapiGen
             parameters[:body_parameters] << parsed[:body_parameter]
           end
         end
-        
+
         parameters
       end
 
@@ -176,6 +178,7 @@ module RailsOpenapiGen
         # Initializes processor to find specific action method
         # @param action_name [String, Symbol] Name of action to find
         def initialize(action_name)
+          super()
           @action_name = action_name.to_sym
           @action_node = nil
         end
@@ -189,7 +192,6 @@ module RailsOpenapiGen
           super
         end
       end
-
     end
   end
 end

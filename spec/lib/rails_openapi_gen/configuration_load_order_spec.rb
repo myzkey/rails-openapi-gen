@@ -31,13 +31,13 @@ RSpec.describe RailsOpenapiGen::Configuration, "load order" do
       # Create both files
       FileUtils.mkdir_p("#{rails_root}/config")
       FileUtils.mkdir_p("#{rails_root}/config/initializers")
-      
+
       File.write("#{rails_root}/config/openapi.rb", <<~RUBY)
         RailsOpenapiGen.configure do |config|
           config.info[:title] = "Ruby Config"
         end
       RUBY
-      
+
       File.write("#{rails_root}/config/initializers/openapi.rb", <<~RUBY)
         RailsOpenapiGen.configure do |config|
           config.info[:title] = "Initializer Config"
@@ -50,7 +50,7 @@ RSpec.describe RailsOpenapiGen::Configuration, "load order" do
 
     it "falls back to config/initializers/openapi.rb when others don't exist" do
       FileUtils.mkdir_p("#{rails_root}/config/initializers")
-      
+
       File.write("#{rails_root}/config/initializers/openapi.rb", <<~RUBY)
         RailsOpenapiGen.configure do |config|
           config.info[:title] = "Initializer Config"
@@ -65,7 +65,7 @@ RSpec.describe RailsOpenapiGen::Configuration, "load order" do
   describe "Ruby configuration files" do
     it "loads Ruby configuration from config/openapi.rb" do
       FileUtils.mkdir_p("#{rails_root}/config")
-      
+
       File.write("#{rails_root}/config/openapi.rb", <<~RUBY)
         RailsOpenapiGen.configure do |config|
           config.openapi_version = "3.1.0"
@@ -76,7 +76,7 @@ RSpec.describe RailsOpenapiGen::Configuration, "load order" do
       RUBY
 
       config.load_from_file
-      
+
       expect(config.openapi_version).to eq("3.1.0")
       expect(config.info[:title]).to eq("Ruby Configured API")
       expect(config.info[:version]).to eq("2.0.0")
@@ -87,7 +87,7 @@ RSpec.describe RailsOpenapiGen::Configuration, "load order" do
   describe "explicit file path" do
     it "loads specific file when path is provided" do
       FileUtils.mkdir_p("#{rails_root}/custom")
-      
+
       File.write("#{rails_root}/custom/my_config.rb", <<~RUBY)
         RailsOpenapiGen.configure do |config|
           config.info[:title] = "Custom Config"

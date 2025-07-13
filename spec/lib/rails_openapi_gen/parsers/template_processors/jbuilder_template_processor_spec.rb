@@ -304,7 +304,7 @@ RSpec.describe RailsOpenapiGen::Parsers::TemplateProcessors::JbuilderTemplatePro
 
       it 'extracts all hash options' do
         result = path_processor.send(:extract_render_hash_options, hash_node)
-        
+
         expect(result[:template]).to eq('shared/user')
         expect(result[:formats]).to eq(:xml)
         expect(result[:status]).to eq(:ok)

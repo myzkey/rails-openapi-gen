@@ -34,10 +34,14 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::CompositeProcesso
     end
 
     it 'initializes all sub-processors' do
-      expect(RailsOpenapiGen::Parsers::Jbuilder::Processors::ArrayProcessor).to receive(:new).with(file_path, property_parser)
-      expect(RailsOpenapiGen::Parsers::Jbuilder::Processors::ObjectProcessor).to receive(:new).with(file_path, property_parser)
-      expect(RailsOpenapiGen::Parsers::Jbuilder::Processors::PropertyProcessor).to receive(:new).with(file_path, property_parser)
-      expect(RailsOpenapiGen::Parsers::Jbuilder::Processors::PartialProcessor).to receive(:new).with(file_path, property_parser)
+      expect(RailsOpenapiGen::Parsers::Jbuilder::Processors::ArrayProcessor).to receive(:new).with(file_path,
+                                                                                                   property_parser)
+      expect(RailsOpenapiGen::Parsers::Jbuilder::Processors::ObjectProcessor).to receive(:new).with(file_path,
+                                                                                                    property_parser)
+      expect(RailsOpenapiGen::Parsers::Jbuilder::Processors::PropertyProcessor).to receive(:new).with(file_path,
+                                                                                                      property_parser)
+      expect(RailsOpenapiGen::Parsers::Jbuilder::Processors::PartialProcessor).to receive(:new).with(file_path,
+                                                                                                     property_parser)
 
       described_class.new(file_path, property_parser)
     end
@@ -45,7 +49,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::CompositeProcesso
 
   describe '#on_send' do
     let(:node) { double('node', children: [receiver, method_name, *args]) }
-    
+
     before do
       allow(node).to receive(:updated).and_return(node)
     end
@@ -56,7 +60,9 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::CompositeProcesso
       let(:method_name) { :cache! }
 
       before do
-        allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::CacheCallDetector).to receive(:cache_call?).with(receiver, method_name).and_return(true)
+        allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::CacheCallDetector).to receive(:cache_call?).with(
+          receiver, method_name
+        ).and_return(true)
         allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::CacheCallDetector).to receive(:cache_if_call?).and_return(false)
         allow(processor).to receive(:process_children)
       end
@@ -67,7 +73,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::CompositeProcesso
         expect(object_processor).not_to receive(:on_send)
         expect(property_processor).not_to receive(:on_send)
         expect(partial_processor).not_to receive(:on_send)
-        
+
         expect { processor.on_send(node) }.not_to raise_error
       end
     end
@@ -77,7 +83,9 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::CompositeProcesso
 
       before do
         allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::CacheCallDetector).to receive(:cache_call?).and_return(false)
-        allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::CacheCallDetector).to receive(:cache_if_call?).with(receiver, method_name).and_return(true)
+        allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::CacheCallDetector).to receive(:cache_if_call?).with(
+          receiver, method_name
+        ).and_return(true)
         allow(processor).to receive(:process_children)
       end
 
@@ -87,7 +95,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::CompositeProcesso
         expect(object_processor).not_to receive(:on_send)
         expect(property_processor).not_to receive(:on_send)
         expect(partial_processor).not_to receive(:on_send)
-        
+
         expect { processor.on_send(node) }.not_to raise_error
       end
     end
@@ -98,7 +106,9 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::CompositeProcesso
       before do
         allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::CacheCallDetector).to receive(:cache_call?).and_return(false)
         allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::CacheCallDetector).to receive(:cache_if_call?).and_return(false)
-        allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::KeyFormatDetector).to receive(:key_format?).with(receiver, method_name).and_return(true)
+        allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::KeyFormatDetector).to receive(:key_format?).with(
+          receiver, method_name
+        ).and_return(true)
         allow(processor).to receive(:process_children)
       end
 
@@ -108,7 +118,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::CompositeProcesso
         expect(object_processor).not_to receive(:on_send)
         expect(property_processor).not_to receive(:on_send)
         expect(partial_processor).not_to receive(:on_send)
-        
+
         expect { processor.on_send(node) }.not_to raise_error
       end
     end
@@ -127,7 +137,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::CompositeProcesso
         expect(object_processor).not_to receive(:on_send)
         expect(property_processor).not_to receive(:on_send)
         expect(partial_processor).not_to receive(:on_send)
-        
+
         expect { processor.on_send(node) }.not_to raise_error
       end
     end
@@ -146,7 +156,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::CompositeProcesso
         expect(object_processor).not_to receive(:on_send)
         expect(property_processor).not_to receive(:on_send)
         expect(partial_processor).not_to receive(:on_send)
-        
+
         expect { processor.on_send(node) }.not_to raise_error
       end
     end
@@ -208,7 +218,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::CompositeProcesso
         expect(object_processor).not_to receive(:on_send)
         expect(property_processor).not_to receive(:on_send)
         expect(partial_processor).not_to receive(:on_send)
-        
+
         processor.on_send(node)
       end
     end
@@ -220,7 +230,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::CompositeProcesso
     let(:body) { double('body') }
     let(:node) { double('node', children: [send_node, args_node, body]) }
     let(:receiver) { double('receiver') }
-    
+
     before do
       allow(node).to receive(:updated).and_return(node)
       allow(send_node).to receive(:updated).and_return(send_node)
@@ -232,7 +242,9 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::CompositeProcesso
       let(:method_name) { :cache! }
 
       before do
-        allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::CacheCallDetector).to receive(:cache_call?).with(receiver, method_name).and_return(true)
+        allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::CacheCallDetector).to receive(:cache_call?).with(
+          receiver, method_name
+        ).and_return(true)
         allow(processor).to receive(:process)
       end
 
@@ -247,7 +259,9 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::CompositeProcesso
 
       before do
         allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::CacheCallDetector).to receive(:cache_call?).and_return(false)
-        allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::CacheCallDetector).to receive(:cache_if_call?).with(receiver, method_name).and_return(true)
+        allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::CacheCallDetector).to receive(:cache_if_call?).with(
+          receiver, method_name
+        ).and_return(true)
         allow(processor).to receive(:process)
       end
 
@@ -263,7 +277,9 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::CompositeProcesso
 
       before do
         stub_cache_detectors_false
-        allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::JsonCallDetector).to receive(:json_property?).with(receiver, method_name).and_return(true)
+        allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::JsonCallDetector).to receive(:json_property?).with(
+          receiver, method_name
+        ).and_return(true)
         allow(array_processor).to receive(:on_block)
       end
 
@@ -280,7 +296,9 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::CompositeProcesso
 
       before do
         stub_cache_detectors_false
-        allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::JsonCallDetector).to receive(:json_property?).with(receiver, method_name).and_return(true)
+        allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::JsonCallDetector).to receive(:json_property?).with(
+          receiver, method_name
+        ).and_return(true)
         allow(object_processor).to receive(:on_block)
       end
 
@@ -297,7 +315,9 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::CompositeProcesso
 
       before do
         stub_cache_detectors_false
-        allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::JsonCallDetector).to receive(:json_property?).with(receiver, method_name).and_return(true)
+        allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::JsonCallDetector).to receive(:json_property?).with(
+          receiver, method_name
+        ).and_return(true)
         allow(object_processor).to receive(:on_block)
       end
 
@@ -314,7 +334,9 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::CompositeProcesso
       before do
         stub_cache_detectors_false
         allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::JsonCallDetector).to receive(:json_property?).and_return(false)
-        allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::ArrayCallDetector).to receive(:array_call?).with(receiver, method_name).and_return(true)
+        allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::ArrayCallDetector).to receive(:array_call?).with(
+          receiver, method_name
+        ).and_return(true)
         allow(array_processor).to receive(:on_block)
       end
 
@@ -339,10 +361,10 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::CompositeProcesso
         # Verify that no specific processors are called
         expect(array_processor).not_to receive(:on_block)
         expect(object_processor).not_to receive(:on_block)
-        
+
         # Mock the super call to avoid AST processing issues
         allow_any_instance_of(RailsOpenapiGen::Parsers::Jbuilder::Processors::BaseProcessor).to receive(:on_block).and_return(node)
-        
+
         result = processor.on_block(node)
         expect(result).to eq(node)
       end
@@ -351,8 +373,8 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::CompositeProcesso
 
   describe '#merge_processor_results' do
     let(:mock_processor) do
-      double('MockProcessor', 
-             properties: [{ name: 'test_prop' }], 
+      double('MockProcessor',
+             properties: [{ name: 'test_prop' }],
              partials: [{ name: 'test_partial' }])
     end
 
@@ -384,7 +406,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::CompositeProcesso
 
       it 'merges all properties and partials' do
         processor.send(:merge_processor_results, mock_processor)
-        
+
         expect(processor.properties.size).to eq(2)
         expect(processor.partials.size).to eq(2)
         expect(processor.properties).to include({ name: 'prop1' }, { name: 'prop2' })
@@ -400,16 +422,20 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::CompositeProcesso
         node1 = double('node1', children: [nil, :cache!, []])
         node2 = double('node2', children: [nil, :name, []])
         node3 = double('node3', children: [nil, :array!, []])
-        
+
         # Mock updated method for all nodes
         allow(node1).to receive(:updated).and_return(node1)
         allow(node2).to receive(:updated).and_return(node2)
         allow(node3).to receive(:updated).and_return(node3)
 
         stub_all_detectors_false
-        allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::CacheCallDetector).to receive(:cache_call?).with(nil, :cache!).and_return(true)
-        allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::JsonCallDetector).to receive(:json_property?).with(nil, :name).and_return(true)
-        allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::ArrayCallDetector).to receive(:array_call?).with(nil, :array!).and_return(true)
+        allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::CacheCallDetector).to receive(:cache_call?).with(nil,
+                                                                                                                  :cache!).and_return(true)
+        allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::JsonCallDetector).to receive(:json_property?).with(
+          nil, :name
+        ).and_return(true)
+        allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::ArrayCallDetector).to receive(:array_call?).with(nil,
+                                                                                                                  :array!).and_return(true)
 
         allow(processor).to receive(:process_children)
         allow(property_processor).to receive(:on_send)
@@ -458,12 +484,12 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::CompositeProcesso
 
       it 'does not delegate to any processor for unknown calls' do
         node = double('node', children: [nil, :unknown, []])
-        
+
         expect(array_processor).not_to receive(:on_send)
         expect(object_processor).not_to receive(:on_send)
         expect(property_processor).not_to receive(:on_send)
         expect(partial_processor).not_to receive(:on_send)
-        
+
         processor.on_send(node)
       end
     end
@@ -472,7 +498,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::CompositeProcesso
       it 'follows detection priority order' do
         node = double('node', children: [nil, :test, []])
         allow(node).to receive(:updated).and_return(node)
-        
+
         # Cache detector has highest priority
         allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::CacheCallDetector).to receive(:cache_call?).and_return(true)
         allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::JsonCallDetector).to receive(:json_property?).and_return(true)
@@ -480,7 +506,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::CompositeProcesso
         allow(property_processor).to receive(:on_send)
 
         processor.on_send(node)
-        
+
         # Should call super (cache behavior) not delegate to property processor
         expect(property_processor).not_to have_received(:on_send)
         # Verify that it follows cache priority over JSON property calls
@@ -502,7 +528,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::CompositeProcesso
 
   def stub_all_detectors_false_except(detector_method, return_value)
     stub_all_detectors_false
-    
+
     case detector_method
     when :null_handling?
       allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::NullHandlingDetector).to receive(:null_handling?).and_return(return_value)

@@ -15,7 +15,7 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
       # @param method_name [Symbol] Method name
       # @param args [Array<Parser::AST::Node>] Method arguments
       # @return [Boolean] True if this is a JSON property call
-      def handles?(receiver, method_name, args = [])
+      def handles?(receiver, method_name, _args = [])
         json_property?(receiver, method_name)
       end
 
@@ -42,10 +42,10 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
       def json_property?(receiver, method_name)
         return false if method_name.nil?
         return false if SPECIAL_METHODS.include?(method_name.to_s)
-        
+
         # Don't handle bare "json" calls - these are receivers, not properties
         return false if receiver.nil? && method_name == :json
-        
+
         # Must be called on json (implicit or explicit)
         json_receiver?(receiver)
       end
@@ -73,7 +73,7 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
       # @return [Boolean] True if this is a simple property assignment
       def simple_property?(receiver, method_name, args)
         return false unless json_property?(receiver, method_name)
-        
+
         # Simple property has exactly one argument and no block
         args.length == 1
       end

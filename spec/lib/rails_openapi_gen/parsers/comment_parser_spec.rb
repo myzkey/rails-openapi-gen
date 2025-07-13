@@ -12,11 +12,11 @@ RSpec.describe RailsOpenapiGen::Parsers::CommentParser do
         result = parser.parse(comment)
 
         expect(result).to eq({
-          field_name: "id",
-          type: "integer",
-          required: "true",
-          description: "User ID"
-        })
+                               field_name: "id",
+                               type: "integer",
+                               required: "true",
+                               description: "User ID"
+                             })
       end
 
       it "parses field with enum values" do
@@ -24,11 +24,11 @@ RSpec.describe RailsOpenapiGen::Parsers::CommentParser do
         result = parser.parse(comment)
 
         expect(result).to eq({
-          field_name: "status",
-          type: "string",
-          enum: ["active", "inactive", "suspended"],
-          description: "User status"
-        })
+                               field_name: "status",
+                               type: "string",
+                               enum: %w[active inactive suspended],
+                               description: "User status"
+                             })
       end
 
       it "parses field with minimal attributes" do
@@ -36,9 +36,9 @@ RSpec.describe RailsOpenapiGen::Parsers::CommentParser do
         result = parser.parse(comment)
 
         expect(result).to eq({
-          field_name: "name",
-          type: "string"
-        })
+                               field_name: "name",
+                               type: "string"
+                             })
       end
     end
 
@@ -48,12 +48,12 @@ RSpec.describe RailsOpenapiGen::Parsers::CommentParser do
         result = parser.parse(comment)
 
         expect(result).to eq({
-          operation: {
-            summary: "List users",
-            tags: ["Users", "Public"],
-            description: "Returns all users"
-          }
-        })
+                               operation: {
+                                 summary: "List users",
+                                 tags: %w[Users Public],
+                                 description: "Returns all users"
+                               }
+                             })
       end
 
       it "parses operation with custom operationId" do
@@ -61,12 +61,12 @@ RSpec.describe RailsOpenapiGen::Parsers::CommentParser do
         result = parser.parse(comment)
 
         expect(result).to eq({
-          operation: {
-            summary: "Get user",
-            operationId: "getUserById",
-            tags: ["Users"]
-          }
-        })
+                               operation: {
+                                 summary: "Get user",
+                                 operationId: "getUserById",
+                                 tags: ["Users"]
+                               }
+                             })
       end
 
       it "parses operation with responseDescription" do
@@ -74,11 +74,11 @@ RSpec.describe RailsOpenapiGen::Parsers::CommentParser do
         result = parser.parse(comment)
 
         expect(result).to eq({
-          operation: {
-            summary: "Create user",
-            responseDescription: "Created user object"
-          }
-        })
+                               operation: {
+                                 summary: "Create user",
+                                 responseDescription: "Created user object"
+                               }
+                             })
       end
     end
 
@@ -110,7 +110,7 @@ RSpec.describe RailsOpenapiGen::Parsers::CommentParser do
         comment = "# @openapi priority:string enum:[high,medium,low]"
         result = parser.parse(comment)
 
-        expect(result[:enum]).to eq(["high", "medium", "low"])
+        expect(result[:enum]).to eq(%w[high medium low])
       end
     end
 
@@ -120,8 +120,8 @@ RSpec.describe RailsOpenapiGen::Parsers::CommentParser do
         result = parser.parse(comment)
 
         expect(result).to eq({
-          conditional: true
-        })
+                               conditional: true
+                             })
       end
 
       it "does not parse conditional with extra attributes" do
@@ -129,10 +129,10 @@ RSpec.describe RailsOpenapiGen::Parsers::CommentParser do
         result = parser.parse(comment)
 
         expect(result).to eq({
-          field_name: "conditional",
-          type: "true",
-          extra: "content"
-        })
+                               field_name: "conditional",
+                               type: "true",
+                               extra: "content"
+                             })
       end
     end
   end

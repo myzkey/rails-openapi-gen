@@ -9,8 +9,8 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
       # @return [Boolean] True if null handling method
       def null_handling?(receiver, method_name)
         return false unless json_receiver?(receiver)
-        
-        null_handling_methods = [:ignore_nil!, :nil!, :null!]
+
+        null_handling_methods = %i[ignore_nil! nil! null!]
         null_handling_methods.include?(method_name)
       end
 

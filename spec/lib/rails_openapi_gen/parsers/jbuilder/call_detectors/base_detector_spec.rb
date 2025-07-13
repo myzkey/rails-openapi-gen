@@ -5,9 +5,9 @@ require 'spec_helper'
 RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::BaseDetector do
   describe '.handles?' do
     it 'raises NotImplementedError' do
-      expect {
+      expect do
         described_class.handles?(nil, :method_name, [])
-      }.to raise_error(NotImplementedError, /must implement #handles\?/)
+      end.to raise_error(NotImplementedError, /must implement #handles\?/)
     end
   end
 
@@ -75,17 +75,17 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::BaseDetector d
   describe '.method_matches?' do
     context 'with symbol patterns' do
       it 'matches exact symbol' do
-        expect(described_class.send(:method_matches?, :test, [:test, :other])).to be true
+        expect(described_class.send(:method_matches?, :test, %i[test other])).to be true
       end
 
       it 'does not match different symbol' do
-        expect(described_class.send(:method_matches?, :test, [:other, :another])).to be false
+        expect(described_class.send(:method_matches?, :test, %i[other another])).to be false
       end
     end
 
     context 'with string patterns' do
       it 'matches exact string' do
-        expect(described_class.send(:method_matches?, :test, ['test', 'other'])).to be true
+        expect(described_class.send(:method_matches?, :test, %w[test other])).to be true
       end
 
       it 'converts string to symbol for comparison' do
@@ -136,21 +136,21 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::BaseDetector d
         key_key = double('key_key', type: :sym, children: [:key])
         key_value = double('key_value', type: :str, children: ['value'])
         key_pair = double('key_pair', type: :pair, children: [key_key, key_value])
-        
+
         other_key = double('other_key', type: :sym, children: [:other])
         other_value = double('other_value', type: :str, children: ['test'])
         other_pair = double('other_pair', type: :pair, children: [other_key, other_value])
-        
+
         double('hash', type: :hash, children: [key_pair, other_pair])
       end
 
       it 'returns true when hash contains any of the target keys' do
-        result = described_class.send(:args_contain_hash_with_keys?, [hash_arg], [:key, :missing])
+        result = described_class.send(:args_contain_hash_with_keys?, [hash_arg], %i[key missing])
         expect(result).to be true
       end
 
       it 'returns false when hash does not contain any target keys' do
-        result = described_class.send(:args_contain_hash_with_keys?, [hash_arg], [:missing, :absent])
+        result = described_class.send(:args_contain_hash_with_keys?, [hash_arg], %i[missing absent])
         expect(result).to be false
       end
     end
@@ -208,24 +208,24 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::BaseDetector d
         a_key = double('a_key', type: :sym, children: [:a])
         a_value = double('a_value', type: :int, children: [1])
         a_pair = double('a_pair', type: :pair, children: [a_key, a_value])
-        
+
         nested_key = double('nested_key', type: :sym, children: [:nested])
-        nested_value = double('nested_value', type: :true, children: [true])
+        nested_value = double('nested_value', type: true, children: [true])
         nested_pair = double('nested_pair', type: :pair, children: [nested_key, nested_value])
         nested_hash = double('nested_hash', type: :hash, children: [nested_pair])
-        
+
         b_key = double('b_key', type: :sym, children: [:b])
         b_pair = double('b_pair', type: :pair, children: [b_key, nested_hash])
-        
+
         c_key = double('c_key', type: :sym, children: [:c])
         c_value = double('c_value', type: :sym, children: [:symbol])
         c_pair = double('c_pair', type: :pair, children: [c_key, c_value])
-        
+
         double('hash', type: :hash, children: [a_pair, b_pair, c_pair])
       end
 
       it 'matches top-level keys only' do
-        result = described_class.send(:args_contain_hash_with_keys?, [complex_hash], [:a, :b, :c])
+        result = described_class.send(:args_contain_hash_with_keys?, [complex_hash], %i[a b c])
         expect(result).to be true
       end
 
@@ -257,7 +257,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::BaseDetector d
 
     context 'with other node types' do
       let(:integer_node) { double('integer', type: :int, children: [42]) }
-      let(:boolean_node) { double('boolean', type: :true, children: [true]) }
+      let(:boolean_node) { double('boolean', type: true, children: [true]) }
 
       it 'returns nil for non-string/symbol nodes' do
         expect(described_class.send(:extract_string_value, integer_node)).to be_nil
@@ -326,7 +326,8 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::BaseDetector d
     end
 
     it 'returns false for complex expressions' do
-      node = double('complex', type: :send, children: [double('left', type: :int, children: [1]), :+, double('right', type: :int, children: [2])])
+      node = double('complex', type: :send,
+                               children: [double('left', type: :int, children: [1]), :+, double('right', type: :int, children: [2])])
       expect(described_class.send(:literal_node?, node)).to be false
     end
   end
@@ -334,7 +335,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::BaseDetector d
   describe 'inheritance and extensibility' do
     let(:custom_detector_class) do
       Class.new(described_class) do
-        def self.handles?(receiver, method_name, args = [])
+        def self.handles?(_receiver, method_name, _args = [])
           method_name == :custom_method
         end
 
@@ -386,7 +387,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::BaseDetector d
       it 'matches method patterns used in real detectors' do
         # Test patterns that would be used in real call detectors
         array_methods = [:array!, /^each/, :map]
-        
+
         expect(described_class.send(:method_matches?, :array!, array_methods)).to be true
         expect(described_class.send(:method_matches?, :each_with_index, array_methods)).to be true
         expect(described_class.send(:method_matches?, :map, array_methods)).to be true
@@ -412,8 +413,8 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::BaseDetector d
         format_pair = double('pair', type: :pair, children: [format_key, format_value])
         other_hash = double('hash', type: :hash, children: [format_pair])
 
-        render_keys = [:template, :partial]
-        
+        render_keys = %i[template partial]
+
         expect(described_class.send(:args_contain_hash_with_keys?, [hash_with_template], render_keys)).to be true
         expect(described_class.send(:args_contain_hash_with_keys?, [hash_with_partial], render_keys)).to be true
         expect(described_class.send(:args_contain_hash_with_keys?, [other_hash], render_keys)).to be false

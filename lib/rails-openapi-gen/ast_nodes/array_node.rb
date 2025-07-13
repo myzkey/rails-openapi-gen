@@ -42,7 +42,7 @@ module RailsOpenapiGen::AstNodes
     # @return [String] OpenAPI type for items
     def item_type
       return 'object' if items.any?
-      
+
       # Check comment data for item type specification
       if @comment_data.items
         case @comment_data.items

@@ -1,0 +1,132 @@
+AllCops:
+  TargetRubyVersion: 3.1
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    - 'vendor/**/*'
+    - 'examples/**/*'
+    - 'tmp/**/*'
+    - 'spec/fixtures/**/*'
+    - 'node_modules/**/*'
+
+# Completely disable metrics cops
+Metrics:
+  Enabled: false
+
+# Disable style cops that cause many violations
+Style/Documentation:
+  Enabled: false
+
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+Style/StringLiterals:
+  Enabled: false
+
+Style/HashSyntax:
+  Enabled: false
+
+Style/IfUnlessModifier:
+  Enabled: false
+
+Style/ClassAndModuleChildren:
+  Enabled: false
+
+Style/NumericPredicate:
+  Enabled: false
+
+Style/ZeroLengthPredicate:
+  Enabled: false
+
+Style/SymbolProc:
+  Enabled: false
+
+# Disable layout cops that are overly strict
+Layout/LineLength:
+  Enabled: false
+
+Layout/TrailingWhitespace:
+  AutoCorrect: true
+
+# Disable naming cops
+Naming/FileName:
+  Enabled: false
+
+Naming/VariableNumber:
+  Enabled: false
+
+Naming/PredicateName:
+  Enabled: false
+
+Naming/AccessorMethodName:
+  Enabled: false
+
+# Enable important lint cops
+Lint/AmbiguousBlockAssociation:
+  Enabled: true
+
+Lint/DuplicateBranch:
+  Enabled: true
+
+Lint/DuplicateMethods:
+  Enabled: true
+
+Lint/MissingSuper:
+  Enabled: true
+
+Lint/BooleanSymbol:
+  Enabled: true
+  Exclude:
+    - 'spec/**/*'
+
+Lint/EmptyBlock:
+  Enabled: true
+  Exclude:
+    - 'spec/**/*'
+
+Lint/ConstantDefinitionInBlock:
+  Enabled: true
+  Exclude:
+    - 'spec/**/*'
+
+Lint/UselessMethodDefinition:
+  Enabled: true
+
+Lint/RedundantSafeNavigation:
+  Enabled: true
+
+# Allow long parameter lists for DSL-style APIs
+Metrics/ParameterLists:
+  Enabled: false
+
+# Disable more style cops
+Style/SafeNavigation:
+  Enabled: false
+
+Style/MultilineBlockChain:
+  Enabled: false
+
+Style/SlicingWithRange:
+  Enabled: false
+
+Style/RedundantArgument:
+  Enabled: false
+
+Style/GuardClause:
+  Enabled: false
+
+Style/StringConcatenation:
+  Enabled: false
+
+Style/CombinableLoops:
+  Enabled: false
+
+Style/CaseLikeIf:
+  Enabled: false
+
+Style/IdenticalConditionalBranches:
+  Enabled: false
+
+# Disable gemspec cops
+Gemspec/RequiredRubyVersion:
+  Enabled: false

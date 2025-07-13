@@ -9,8 +9,8 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
       # @return [Boolean] True if object manipulation method
       def object_manipulation?(receiver, method_name)
         return false unless json_receiver?(receiver)
-        
-        object_manipulation_methods = [:merge!, :set!, :child!, :cache_root!]
+
+        object_manipulation_methods = %i[merge! set! child! cache_root!]
         object_manipulation_methods.include?(method_name)
       end
 

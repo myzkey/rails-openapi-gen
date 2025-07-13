@@ -79,12 +79,12 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::BaseProcessor do
 
       it 'pushes and pops conditional stack' do
         expect(processor.instance_variable_get(:@conditional_stack)).to be_empty
-        
+
         # Mock the super call to avoid AST processing issues
         expect_any_instance_of(Parser::AST::Processor).to receive(:on_if).with(node)
-        
+
         processor.on_if(node)
-        
+
         # After processing, stack should be empty again
         expect(processor.instance_variable_get(:@conditional_stack)).to be_empty
       end
@@ -98,7 +98,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::BaseProcessor do
       it 'does not modify conditional stack' do
         # Mock the super call to avoid AST processing issues
         expect_any_instance_of(Parser::AST::Processor).to receive(:on_if).with(node)
-        
+
         processor.on_if(node)
         expect(processor.instance_variable_get(:@conditional_stack)).to be_empty
       end
@@ -132,7 +132,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::BaseProcessor do
 
     it 'finds comment for node line number' do
       expect(property_parser).to receive(:find_property_comment_for_line).with(15).and_return(comment_data)
-      
+
       result = processor.send(:find_comment_for_node, node)
       expect(result).to eq(comment_data)
     end
@@ -254,7 +254,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::BaseProcessor do
 
     context 'with SimplePropertyNode' do
       let(:simple_node) do
-        double('SimplePropertyNode', 
+        double('SimplePropertyNode',
                property: 'name',
                comment_data: comment_data)
       end
@@ -265,7 +265,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::BaseProcessor do
         allow(RailsOpenapiGen::AstNodes::ArrayPropertyNode).to receive(:===).with(simple_node).and_return(false)
         allow(RailsOpenapiGen::AstNodes::ObjectPropertyNode).to receive(:===).with(simple_node).and_return(false)
         allow(RailsOpenapiGen::AstNodes::ArrayRootNode).to receive(:===).with(simple_node).and_return(false)
-        
+
         stub_const('RailsOpenapiGen::AstNodes::PropertyNodeFactory', double)
         allow(RailsOpenapiGen::AstNodes::PropertyNodeFactory).to receive(:create_simple).and_return(double('ConditionalSimpleNode'))
       end
@@ -276,16 +276,18 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::BaseProcessor do
           comment_data: comment_data,
           is_conditional: true
         )
-        
+
         processor.send(:create_conditional_node, simple_node)
       end
     end
 
     context 'with ArrayPropertyNode' do
-      let(:array_node) { double('ArrayPropertyNode', 
-                                property: 'items', 
-                                comment_data: comment_data,
-                                array_item_properties: []) }
+      let(:array_node) do
+        double('ArrayPropertyNode',
+               property: 'items',
+               comment_data: comment_data,
+               array_item_properties: [])
+      end
 
       before do
         # Mock case statement class checking (uses ===)
@@ -293,7 +295,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::BaseProcessor do
         allow(RailsOpenapiGen::AstNodes::ArrayPropertyNode).to receive(:===).with(array_node).and_return(true)
         allow(RailsOpenapiGen::AstNodes::ObjectPropertyNode).to receive(:===).with(array_node).and_return(false)
         allow(RailsOpenapiGen::AstNodes::ArrayRootNode).to receive(:===).with(array_node).and_return(false)
-        
+
         stub_const('RailsOpenapiGen::AstNodes::PropertyNodeFactory', double)
         allow(RailsOpenapiGen::AstNodes::PropertyNodeFactory).to receive(:create_array).and_return(double('ConditionalArrayNode'))
       end
@@ -305,7 +307,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::BaseProcessor do
           is_conditional: true,
           array_item_properties: []
         )
-        
+
         processor.send(:create_conditional_node, array_node)
       end
     end
@@ -330,7 +332,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::BaseProcessor do
       it 'maintains order of nested blocks' do
         processor.send(:push_block, :object)
         processor.send(:push_block, :array)
-        expect(processor.instance_variable_get(:@block_stack)).to eq([:object, :array])
+        expect(processor.instance_variable_get(:@block_stack)).to eq(%i[object array])
       end
     end
 
@@ -338,7 +340,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::BaseProcessor do
       it 'pops and returns last block type' do
         processor.send(:push_block, :array)
         processor.send(:push_block, :object)
-        
+
         result = processor.send(:pop_block)
         expect(result).to eq(:object)
         expect(processor.instance_variable_get(:@block_stack)).to eq([:array])
@@ -425,11 +427,11 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::BaseProcessor do
 
   describe '#clear_results' do
     it 'clears properties and partials arrays' do
-      processor.instance_variable_set(:@properties, ['prop1', 'prop2'])
+      processor.instance_variable_set(:@properties, %w[prop1 prop2])
       processor.instance_variable_set(:@partials, ['partial1'])
-      
+
       processor.send(:clear_results)
-      
+
       expect(processor.properties).to be_empty
       expect(processor.partials).to be_empty
     end
@@ -463,23 +465,23 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::BaseProcessor do
         condition_node1 = double('condition1', type: :send)
         body_node1 = double('body1', type: :begin, children: [])
         node1 = double('node1', type: :if, location: double(line: 10), children: [condition_node1, body_node1, nil])
-        
+
         condition_node2 = double('condition2', type: :send)
         body_node2 = double('body2', type: :begin, children: [])
         node2 = double('node2', type: :if, location: double(line: 20), children: [condition_node2, body_node2, nil])
-        
+
         allow(processor).to receive(:find_comment_for_node).with(node1).and_return({ conditional: true })
         allow(processor).to receive(:find_comment_for_node).with(node2).and_return({ conditional: true })
-        
+
         # Mock the super calls to avoid AST processing issues
         expect_any_instance_of(Parser::AST::Processor).to receive(:on_if).with(node1)
         expect_any_instance_of(Parser::AST::Processor).to receive(:on_if).with(node2)
-        
+
         # Test proper nesting behavior - each call should push and pop
         expect(processor.instance_variable_get(:@conditional_stack)).to be_empty
         processor.on_if(node1)
         expect(processor.instance_variable_get(:@conditional_stack)).to be_empty
-        
+
         processor.on_if(node2)
         expect(processor.instance_variable_get(:@conditional_stack)).to be_empty
       end
@@ -490,13 +492,13 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::BaseProcessor do
         processor.send(:push_block, :root)
         processor.send(:push_block, :object)
         processor.send(:push_block, :array)
-        
+
         expect(processor.send(:inside_block?, :array)).to be true
         expect(processor.send(:inside_block?, :object)).to be false
-        
+
         processor.send(:pop_block)
         expect(processor.send(:inside_block?, :object)).to be true
-        
+
         processor.send(:pop_block)
         expect(processor.send(:inside_block?, :root)).to be true
       end

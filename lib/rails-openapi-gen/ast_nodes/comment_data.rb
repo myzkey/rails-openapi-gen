@@ -8,7 +8,7 @@ module RailsOpenapiGen::AstNodes
 
     def initialize(
       type: nil,
-      description: nil, 
+      description: nil,
       required: true,
       enum: nil,
       field_name: nil,
@@ -57,7 +57,7 @@ module RailsOpenapiGen::AstNodes
     def has_format?
       # Auto-detect format from invalid types that were converted
       return true if auto_format_from_invalid_type
-      
+
       @format && !@format.empty?
     end
 
@@ -72,14 +72,8 @@ module RailsOpenapiGen::AstNodes
     def openapi_type
       # Handle common invalid types and auto-correct them
       case @type
-      when 'date-time', 'datetime'
-        # date-time is not a valid OpenAPI type, should be string with format
-        'string'
-      when 'date'
-        # date is not a valid OpenAPI type, should be string with format
-        'string'
-      when 'time'
-        # time is not a valid OpenAPI type, should be string with format
+      when 'date-time', 'datetime', 'date', 'time'
+        # These are not valid OpenAPI types, should be string with format
         'string'
       else
         @type || 'string'
@@ -88,11 +82,11 @@ module RailsOpenapiGen::AstNodes
 
     # Get format for the property, including auto-detected formats
     # @return [String, nil] Format specification
-    def format
+    def format_value
       # Auto-detect format from invalid types that were converted
       auto_format = auto_format_from_invalid_type
       return auto_format if auto_format
-      
+
       @format
     end
 
@@ -100,6 +94,7 @@ module RailsOpenapiGen::AstNodes
     # @return [Hash, nil] Items specification
     def array_items
       return nil unless @type == 'array'
+
       @items || { 'type' => 'object' }
     end
 
@@ -109,7 +104,7 @@ module RailsOpenapiGen::AstNodes
       schema = { 'type' => openapi_type }
       schema['description'] = @description if @description
       schema['enum'] = @enum if has_enum?
-      schema['format'] = format if has_format?
+      schema['format'] = format_value if has_format?
       schema['example'] = @example if has_example?
       schema['items'] = array_items if @type == 'array' && array_items
       schema
@@ -179,8 +174,6 @@ module RailsOpenapiGen::AstNodes
         'date'
       when 'time'
         'time'
-      else
-        nil
       end
     end
   end

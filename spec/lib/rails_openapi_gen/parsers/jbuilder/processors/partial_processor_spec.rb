@@ -17,12 +17,11 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PartialProcessor 
   describe '#on_send' do
     let(:receiver) { nil }
     let(:args) { [double('arg1', type: :str, children: ['test_partial'])] }
-    let(:node) { 
-      double('node', 
-        children: [receiver, method_name, *args],
-        updated: double('updated_node')
-      ) 
-    }
+    let(:node) do
+      double('node',
+             children: [receiver, method_name, *args],
+             updated: double('updated_node'))
+    end
 
     context 'with partial call' do
       let(:method_name) { :partial! }
@@ -34,7 +33,9 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PartialProcessor 
 
       it 'processes partial with args' do
         # Add a mock expectation that the detector is called
-        expect(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::PartialCallDetector).to receive(:partial_call?).with(receiver, method_name).and_return(true)
+        expect(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::PartialCallDetector).to receive(:partial_call?).with(
+          receiver, method_name
+        ).and_return(true)
         expect(processor).to receive(:process_partial).with(args)
         processor.on_send(node)
       end
@@ -50,7 +51,9 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PartialProcessor 
 
       before do
         # Mock the call detector to return false for non-partial calls
-        allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::PartialCallDetector).to receive(:partial_call?).with(receiver, method_name).and_return(false)
+        allow(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::PartialCallDetector).to receive(:partial_call?).with(
+          receiver, method_name
+        ).and_return(false)
         # Allow the Parser gem's processor to be called
         allow_any_instance_of(Parser::AST::Processor).to receive(:on_send)
       end
@@ -84,7 +87,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PartialProcessor 
       it 'extracts partial name and resolves path' do
         expect(processor).to receive(:extract_partial_name).with(args)
         expect(processor).to receive(:resolve_partial_path).with(partial_name)
-        
+
         processor.send(:process_partial, args)
       end
 
@@ -145,11 +148,11 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PartialProcessor 
       let(:partial_key) { double('partial_key', type: :sym, children: [:partial]) }
       let(:partial_value) { double('partial_value', type: :str, children: ['api/user']) }
       let(:partial_pair) { double('partial_pair', type: :pair, children: [partial_key, partial_value]) }
-      
+
       let(:locals_key) { double('locals_key', type: :sym, children: [:locals]) }
       let(:locals_value) { double('locals_value', type: :hash, children: []) }
       let(:locals_pair) { double('locals_pair', type: :pair, children: [locals_key, locals_value]) }
-      
+
       let(:hash_node) { double('hash_node', type: :hash, children: [locals_pair, partial_pair]) }
       let(:args) { [hash_node] }
 
@@ -241,12 +244,11 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PartialProcessor 
   end
 
   describe 'integration with call detectors' do
-    let(:node) { 
-      double('node', 
-        children: [nil, :partial!, []],
-        updated: double('updated_node')
-      ) 
-    }
+    let(:node) do
+      double('node',
+             children: [nil, :partial!, []],
+             updated: double('updated_node'))
+    end
 
     before do
       allow_any_instance_of(Parser::AST::Processor).to receive(:on_send)
@@ -254,9 +256,11 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PartialProcessor 
 
     it 'uses PartialCallDetector for partial detection' do
       # Test that the detector method is called and that process_partial is called when it returns true
-      expect(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::PartialCallDetector).to receive(:partial_call?).with(nil, :partial!).and_return(true)
+      expect(RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::PartialCallDetector).to receive(:partial_call?).with(
+        nil, :partial!
+      ).and_return(true)
       expect(processor).to receive(:process_partial).with([[]])
-      
+
       processor.on_send(node)
     end
   end
@@ -265,9 +269,9 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PartialProcessor 
     it 'inherits partial path resolution from base processor' do
       args = [double('string_node', type: :str, children: ['user'])]
       resolved_path = '/test/resolved/path/_user.json.jbuilder'
-      
+
       expect(processor).to receive(:resolve_partial_path).with('user').and_return(resolved_path)
-      
+
       processor.send(:process_partial, args)
       expect(processor.partials).to include(resolved_path)
     end
@@ -338,11 +342,11 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PartialProcessor 
       let(:partial_key) { double('partial_key', type: :sym, children: [:partial]) }
       let(:partial_value) { double('partial_value', type: :str, children: ['users/user_card']) }
       let(:partial_pair) { double('partial_pair', type: :pair, children: [partial_key, partial_value]) }
-      
+
       let(:locals_key) { double('locals_key', type: :sym, children: [:locals]) }
       let(:locals_hash) { double('locals_hash', type: :hash, children: []) }
       let(:locals_pair) { double('locals_pair', type: :pair, children: [locals_key, locals_hash]) }
-      
+
       let(:hash_node) { double('hash_node', type: :hash, children: [partial_pair, locals_pair]) }
       let(:args) { [hash_node] }
 
@@ -380,9 +384,9 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PartialProcessor 
       end
 
       it 'propagates the error' do
-        expect {
+        expect do
           processor.send(:process_partial, args)
-        }.to raise_error(StandardError, 'Path resolution failed')
+        end.to raise_error(StandardError, 'Path resolution failed')
       end
     end
 
@@ -392,10 +396,10 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PartialProcessor 
       let(:args) { [hash_node] }
 
       it 'handles malformed pairs gracefully' do
-        expect {
+        expect do
           result = processor.send(:extract_partial_name, args)
           expect(result).to be_nil
-        }.not_to raise_error
+        end.not_to raise_error
       end
     end
   end

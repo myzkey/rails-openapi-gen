@@ -21,20 +21,20 @@ module RailsOpenapiGen
 
       def parse_parameter_attributes(content)
         attributes = {}
-        
+
         parts = parse_key_value_pairs(content)
-        
+
         # First part should be parameter_name:type
         if parts.any?
           first_key, first_value = parts.first
           attributes[:name] = first_key
           attributes[:type] = clean_value(first_value)
         end
-        
+
         # Remaining parts are attributes
         parts[1..-1]&.each do |key, value|
           cleaned_value = clean_value(value)
-          
+
           case key
           when "required"
             attributes[:required] = cleaned_value
@@ -54,7 +54,7 @@ module RailsOpenapiGen
             attributes[key.to_sym] = cleaned_value
           end
         end
-        
+
         attributes
       end
     end

@@ -17,31 +17,31 @@ RSpec.describe 'PartialProcessor Logic' do
         end
       end
     end
-    
+
     # Mock the detector module
     module TestCallDetectors
       module PartialCallDetector
-        def self.partial_call?(receiver, method_name)
+        def self.partial_call?(_receiver, method_name)
           method_name == :partial!
         end
       end
     end
-    
+
     # Create a test class that implements the logic we want to test
     class TestPartialProcessor
       attr_reader :partials, :file_path, :property_parser
-      
+
       def initialize(file_path, property_parser)
         @file_path = file_path
         @property_parser = property_parser
         @partials = []
       end
-      
+
       def on_send(node)
         receiver, method_name, *args = node.children
         process_partial(args) if TestCallDetectors::PartialCallDetector.partial_call?(receiver, method_name)
       end
-      
+
       def process_partial(args)
         return if args.empty?
 
@@ -54,33 +54,33 @@ RSpec.describe 'PartialProcessor Logic' do
         puts "🔍 DEBUG: Partial exists: #{File.exist?(partial_path)}" if ENV['RAILS_OPENAPI_DEBUG'] && partial_path
         @partials << partial_path if partial_path
       end
-      
+
       def extract_partial_name(args)
         first_arg = args.first
-        
+
         # Handle simple string case: json.partial! 'path/to/partial'
         if first_arg.type == :str
           return first_arg.children.first
         end
-        
+
         # Handle hash case: json.partial! partial: 'path/to/partial', locals: {...}
         if first_arg.type == :hash
           first_arg.children.each do |pair|
             next unless pair.type == :pair
-            
+
             key, value = pair.children
             if key.type == :sym && key.children.first == :partial && value.type == :str
               return value.children.first
             end
           end
         end
-        
+
         nil
       end
-      
+
       def resolve_partial_path(partial_name)
         return nil unless @file_path && partial_name
-        
+
         dir = File.dirname(@file_path)
 
         if partial_name.include?('/')
@@ -109,16 +109,16 @@ RSpec.describe 'PartialProcessor Logic' do
       end
     end
   end
-  
+
   let(:file_path) { '/test/app/views/users/index.json.jbuilder' }
   let(:property_parser) { double('PropertyCommentParser') }
   let(:processor) { TestPartialProcessor.new(file_path, property_parser) }
-  
+
   # Helper to create mock AST nodes
   def create_node(type, children = [])
     double('node', type: type, children: children)
   end
-  
+
   describe '#on_send' do
     context 'with partial call' do
       let(:args) { [create_node(:str, ['users/user'])] }
@@ -251,14 +251,14 @@ RSpec.describe 'PartialProcessor Logic' do
         # Process first partial
         args1 = [create_node(:str, ['users/user'])]
         node1 = create_node(:send, [nil, :partial!, *args1])
-        
+
         # Process second partial
         args2 = [create_node(:str, ['shared/header'])]
         node2 = create_node(:send, [nil, :partial!, *args2])
-        
+
         processor.on_send(node1)
         processor.on_send(node2)
-        
+
         expect(processor.partials).to include('/test/app/views/users/_user.json.jbuilder')
         expect(processor.partials).to include('/test/app/views/shared/_header.json.jbuilder')
       end

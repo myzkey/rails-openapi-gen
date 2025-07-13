@@ -3,9 +3,7 @@
 module RailsOpenapiGen::AstNodes
   # Represents an object node in Jbuilder template (json.object do...end)
   class ObjectNode < BaseNode
-    attr_reader :property_name # json.xxx
-    attr_reader :comment_data # @openapi comments
-    attr_reader :is_conditional # if/else
+    attr_reader :property_name, :comment_data, :is_conditional # json.xxx # @openapi comments # if/else
 
     def initialize(property_name:, comment_data: nil, is_conditional: false, parent: nil, metadata: {})
       super(parent: parent, metadata: metadata)

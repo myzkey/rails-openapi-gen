@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ "*" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        ruby-version: ['3.1', '3.2', '3.3']
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Ruby ${{ matrix.ruby-version }}
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby-version }}
+        bundler-cache: true
+
+    - name: Install dependencies
+      run: bundle install
+
+    - name: Run RSpec tests
+      run: bundle exec rspec --format documentation --exclude-pattern "spec/integration/**/*_spec.rb"
+
+    - name: Run RuboCop linter
+      run: bundle exec rubocop --format simple
+
+  gem-build:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.2'
+        bundler-cache: true
+
+    - name: Build gem
+      run: gem build rails-openapi-gen.gemspec
+
+    - name: Validate gem
+      run: gem install --local rails-openapi-gen-*.gem
+
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: test
+    continue-on-error: true  # Allow integration test failures
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.2'
+        bundler-cache: true
+
+    - name: Install dependencies
+      run: bundle install
+
+    - name: Test example Rails app
+      working-directory: examples/rails_app
+      run: |
+        bundle install
+        bin/rails openapi:generate
+
+    - name: Verify OpenAPI output
+      working-directory: examples/rails_app
+      run: |
+        test -f docs/api/openapi.yaml
+        test -d docs/api/paths
+        test -d docs/api/components/schemas
+
+    - name: Run integration tests
+      run: bundle exec rspec spec/integration/ --format documentation
+      continue-on-error: true

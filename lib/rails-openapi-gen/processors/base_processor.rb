@@ -9,7 +9,7 @@ module RailsOpenapiGen::Processors
     # @return [Object] Processed output
     def process(node)
       return nil unless node
-      
+
       if node.respond_to?(:accept)
         node.accept(self)
       else
@@ -38,35 +38,35 @@ module RailsOpenapiGen::Processors
     # Visit a property node
     # @param node [RailsOpenapiGen::AstNodes::PropertyNode] Property node
     # @return [Object] Processed output
-    def visit_property(node)
+    def visit_property(_node)
       raise NotImplementedError, "#{self.class} must implement #visit_property"
     end
 
     # Visit an array node
     # @param node [RailsOpenapiGen::AstNodes::ArrayNode] Array node
     # @return [Object] Processed output
-    def visit_array(node)
+    def visit_array(_node)
       raise NotImplementedError, "#{self.class} must implement #visit_array"
     end
 
     # Visit an object node
     # @param node [RailsOpenapiGen::AstNodes::ObjectNode] Object node
     # @return [Object] Processed output
-    def visit_object(node)
+    def visit_object(_node)
       raise NotImplementedError, "#{self.class} must implement #visit_object"
     end
 
     # Visit a partial node
     # @param node [RailsOpenapiGen::AstNodes::PartialNode] Partial node
     # @return [Object] Processed output
-    def visit_partial(node)
+    def visit_partial(_node)
       raise NotImplementedError, "#{self.class} must implement #visit_partial"
     end
 
     # Visit an unknown node type
     # @param node [RailsOpenapiGen::AstNodes::BaseNode] Unknown node
     # @return [Object] Processed output
-    def visit_unknown(node)
+    def visit_unknown(_node)
       # Default implementation returns nil for unknown nodes
       nil
     end
@@ -76,7 +76,7 @@ module RailsOpenapiGen::Processors
     # @return [Array<Object>] Array of processed outputs
     def process_nodes(nodes)
       return [] unless nodes.respond_to?(:map)
-      
+
       nodes.map { |node| process(node) }.compact
     end
 
@@ -85,7 +85,7 @@ module RailsOpenapiGen::Processors
     # @return [Boolean] True if node should be processed
     def should_process?(node)
       return false unless node
-      
+
       # Can be overridden in subclasses for custom filtering
       true
     end

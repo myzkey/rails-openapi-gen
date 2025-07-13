@@ -5,63 +5,65 @@ require_relative '../call_detectors'
 
 module RailsOpenapiGen::Parsers::Jbuilder::Processors
   class PartialProcessor < BaseProcessor
-          # Alias for shorter reference to call detectors
-          CallDetectors = RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
-          # Processes method call nodes for partial render calls
-          # @param node [Parser::AST::Node] Method call node
-          # @return [void]
-          def on_send(node)
-            receiver, method_name, *args = node.children
+    # Alias for shorter reference to call detectors
+    CallDetectors = RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
+    # Processes method call nodes for partial render calls
+    # @param node [Parser::AST::Node] Method call node
+    # @return [void]
+    def on_send(node)
+      receiver, method_name, *args = node.children
 
-            process_partial(args) if RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::PartialCallDetector.partial_call?(receiver, method_name)
+      process_partial(args) if RailsOpenapiGen::Parsers::Jbuilder::CallDetectors::PartialCallDetector.partial_call?(
+        receiver, method_name
+      )
 
-            super
+      super
+    end
+
+    private
+
+    # Processes partial render calls to track dependencies
+    # @param args [Array] Partial call arguments
+    # @return [void]
+    def process_partial(args)
+      return if args.empty?
+
+      partial_name = extract_partial_name(args)
+      return unless partial_name
+
+      puts "🔍 DEBUG: Found partial: #{partial_name}" if ENV['RAILS_OPENAPI_DEBUG']
+      partial_path = resolve_partial_path(partial_name)
+      puts "🔍 DEBUG: Resolved partial path: #{partial_path}" if ENV['RAILS_OPENAPI_DEBUG']
+      puts "🔍 DEBUG: Partial exists: #{File.exist?(partial_path)}" if ENV['RAILS_OPENAPI_DEBUG'] && partial_path
+      @partials << partial_path if partial_path
+    end
+
+    # Extracts partial name from arguments (handles both string and hash syntax)
+    # @param args [Array] Partial call arguments
+    # @return [String, nil] Partial name or nil
+    def extract_partial_name(args)
+      first_arg = args.first
+
+      # Handle simple string case: json.partial! 'path/to/partial'
+      if first_arg.type == :str
+        return first_arg.children.first
+      end
+
+      # Handle hash case: json.partial! partial: 'path/to/partial', locals: {...}
+      if first_arg.type == :hash
+        first_arg.children.each do |pair|
+          next unless pair&.type == :pair
+
+          key, value = pair.children
+          next unless key && value
+
+          if key.type == :sym && key.children.first == :partial && value.type == :str
+            return value.children.first
           end
+        end
+      end
 
-          private
-
-          # Processes partial render calls to track dependencies
-          # @param args [Array] Partial call arguments
-          # @return [void]
-          def process_partial(args)
-            return if args.empty?
-
-            partial_name = extract_partial_name(args)
-            return unless partial_name
-
-            puts "🔍 DEBUG: Found partial: #{partial_name}" if ENV['RAILS_OPENAPI_DEBUG']
-            partial_path = resolve_partial_path(partial_name)
-            puts "🔍 DEBUG: Resolved partial path: #{partial_path}" if ENV['RAILS_OPENAPI_DEBUG']
-            puts "🔍 DEBUG: Partial exists: #{File.exist?(partial_path)}" if ENV['RAILS_OPENAPI_DEBUG'] && partial_path
-            @partials << partial_path if partial_path
-          end
-
-          # Extracts partial name from arguments (handles both string and hash syntax)
-          # @param args [Array] Partial call arguments
-          # @return [String, nil] Partial name or nil
-          def extract_partial_name(args)
-            first_arg = args.first
-            
-            # Handle simple string case: json.partial! 'path/to/partial'
-            if first_arg.type == :str
-              return first_arg.children.first
-            end
-            
-            # Handle hash case: json.partial! partial: 'path/to/partial', locals: {...}
-            if first_arg.type == :hash
-              first_arg.children.each do |pair|
-                next unless pair&.type == :pair
-                
-                key, value = pair.children
-                next unless key && value
-                
-                if key.type == :sym && key.children.first == :partial && value.type == :str
-                  return value.children.first
-                end
-              end
-            end
-            
-            nil
-          end
+      nil
+    end
   end
 end

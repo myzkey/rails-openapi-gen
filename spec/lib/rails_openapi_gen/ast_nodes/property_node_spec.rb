@@ -31,9 +31,9 @@ RSpec.describe RailsOpenapiGen::AstNodes::PropertyNode do
     end
 
     it 'requires property_name' do
-      expect {
+      expect do
         described_class.new
-      }.to raise_error(ArgumentError, /property_name/)
+      end.to raise_error(ArgumentError, /property_name/)
     end
   end
 
@@ -137,10 +137,10 @@ RSpec.describe RailsOpenapiGen::AstNodes::PropertyNode do
     it 'returns enum from comment_data' do
       node = described_class.new(
         property_name: 'status',
-        comment_data: RailsOpenapiGen::AstNodes::CommentData.new(enum: ['active', 'inactive'])
+        comment_data: RailsOpenapiGen::AstNodes::CommentData.new(enum: %w[active inactive])
       )
 
-      expect(node.enum_values).to eq(['active', 'inactive'])
+      expect(node.enum_values).to eq(%w[active inactive])
     end
 
     it 'returns nil when no enum' do
@@ -153,8 +153,7 @@ RSpec.describe RailsOpenapiGen::AstNodes::PropertyNode do
     end
   end
 
-  # Note: format and example are accessed through comment_data, not direct methods
-
+  # NOTE: format and example are accessed through comment_data, not direct methods
 
   describe '#to_h' do
     let(:node) do
@@ -163,7 +162,7 @@ RSpec.describe RailsOpenapiGen::AstNodes::PropertyNode do
         comment_data: RailsOpenapiGen::AstNodes::CommentData.new(
           type: 'string',
           description: 'User status',
-          enum: ['active', 'inactive']
+          enum: %w[active inactive]
         ),
         is_conditional: true
       )
@@ -185,7 +184,7 @@ RSpec.describe RailsOpenapiGen::AstNodes::PropertyNode do
       expect(hash[:property_name]).to eq('status')
       expect(hash[:openapi_type]).to eq('string')
       expect(hash[:description]).to eq('User status')
-      expect(hash[:enum]).to eq(['active', 'inactive'])
+      expect(hash[:enum]).to eq(%w[active inactive])
       expect(hash[:is_conditional]).to be true
     end
 
@@ -255,13 +254,13 @@ RSpec.describe RailsOpenapiGen::AstNodes::PropertyNode do
         property_name: 'role',
         comment_data: RailsOpenapiGen::AstNodes::CommentData.new(
           type: 'string',
-          enum: ['admin', 'user', 'moderator'],
+          enum: %w[admin user moderator],
           description: 'User role'
         )
       )
 
       expect(node.openapi_type).to eq('string')
-      expect(node.enum_values).to eq(['admin', 'user', 'moderator'])
+      expect(node.enum_values).to eq(%w[admin user moderator])
       expect(node.description).to eq('User role')
     end
 

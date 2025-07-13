@@ -213,12 +213,12 @@ RSpec.describe RailsOpenapiGen::AstNodes::ObjectNode do
 
     it 'handles multiple properties' do
       node = described_class.new(property_name: 'user')
-      
+
       id_prop = RailsOpenapiGen::AstNodes::PropertyNode.new(
         property_name: 'id',
         comment_data: RailsOpenapiGen::AstNodes::CommentData.new(type: 'integer')
       )
-      
+
       name_prop = RailsOpenapiGen::AstNodes::PropertyNode.new(
         property_name: 'name',
         comment_data: RailsOpenapiGen::AstNodes::CommentData.new(type: 'string')
@@ -233,7 +233,7 @@ RSpec.describe RailsOpenapiGen::AstNodes::ObjectNode do
 
     it 'preserves property order' do
       node = described_class.new(property_name: 'user')
-      
+
       props = %w[id name email created_at].map do |name|
         RailsOpenapiGen::AstNodes::PropertyNode.new(
           property_name: name,

@@ -5,9 +5,9 @@ require "pathname"
 # Mock Rails for testing BEFORE requiring the main library
 class MockRails
   def self.root
-    Pathname.new(File.expand_path("../fixtures", __FILE__))
+    Pathname.new(File.expand_path('fixtures', __dir__))
   end
-  
+
   def self.application
     MockApplication.new
   end
@@ -17,7 +17,7 @@ class MockRails
       # Mock method
     end
 
-    def self.rake_tasks(&block)
+    def self.rake_tasks(&)
       # Mock method
     end
   end

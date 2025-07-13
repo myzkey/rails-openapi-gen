@@ -21,12 +21,12 @@ module RailsOpenapiGen
 
       def parse_operation_attributes(content)
         attributes = {}
-        
+
         parts = parse_key_value_pairs(content)
-        
+
         parts.each do |key, value|
           cleaned_value = clean_value(value)
-          
+
           case key
           when "summary"
             attributes[:summary] = cleaned_value
@@ -42,7 +42,7 @@ module RailsOpenapiGen
             attributes[key.to_sym] = cleaned_value
           end
         end
-        
+
         attributes
       end
     end

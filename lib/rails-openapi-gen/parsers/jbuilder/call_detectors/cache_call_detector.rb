@@ -15,7 +15,7 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
       # @param method_name [Symbol] Method name
       # @param args [Array<Parser::AST::Node>] Method arguments
       # @return [Boolean] True if this is a cache call
-      def handles?(receiver, method_name, args = [])
+      def handles?(receiver, method_name, _args = [])
         cache_call?(receiver, method_name) || cache_if_call?(receiver, method_name)
       end
 
@@ -63,7 +63,7 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
       # @return [String, nil] Cache key
       def extract_cache_key(args)
         return nil if args.empty?
-        
+
         first_arg = args.first
         extract_string_value(first_arg)
       end
@@ -73,6 +73,7 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
       # @return [Parser::AST::Node, nil] Condition node
       def extract_cache_condition(args)
         return nil if args.length < 2
+
         args.first # First argument is the condition
       end
 
@@ -88,22 +89,22 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
       # @return [Hash] Cache options
       def extract_cache_options(args)
         options = {}
-        
+
         args.each do |arg|
           next unless arg.type == :hash
-          
+
           arg.children.each do |pair|
             next unless pair.type == :pair
-            
+
             key_node, value_node = pair.children
             next unless key_node.type == :sym
-            
+
             key = key_node.children.first
             value = extract_string_value(value_node) || value_node
             options[key] = value
           end
         end
-        
+
         options
       end
     end

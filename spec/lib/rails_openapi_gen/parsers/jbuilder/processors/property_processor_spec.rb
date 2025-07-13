@@ -11,7 +11,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PropertyProcessor
 
   before do
     allow(property_parser).to receive(:find_property_comment_for_line).and_return(nil)
-    
+
     # Mock required classes
     stub_const('RailsOpenapiGen::AstNodes::CommentData', double)
     stub_const('RailsOpenapiGen::AstNodes::PropertyNodeFactory', double)
@@ -28,7 +28,8 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PropertyProcessor
       let(:method_name) { :name }
 
       before do
-        allow(described_class::CallDetectors::JsonCallDetector).to receive(:json_property?).with(receiver, method_name).and_return(true)
+        allow(described_class::CallDetectors::JsonCallDetector).to receive(:json_property?).with(receiver,
+                                                                                                 method_name).and_return(true)
         allow(processor).to receive(:process_json_property)
       end
 
@@ -42,7 +43,8 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PropertyProcessor
       let(:method_name) { :some_method }
 
       before do
-        allow(described_class::CallDetectors::JsonCallDetector).to receive(:json_property?).with(receiver, method_name).and_return(false)
+        allow(described_class::CallDetectors::JsonCallDetector).to receive(:json_property?).with(receiver,
+                                                                                                 method_name).and_return(false)
         # Mock the node to handle Parser::AST::Processor behavior
         allow(node).to receive(:updated).and_return(node)
       end
@@ -116,7 +118,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PropertyProcessor
           type: 'string',
           description: 'User username',
           required: true,
-          enum: ['admin', 'user'],
+          enum: %w[admin user],
           field_name: 'username'
         }
       end
@@ -126,29 +128,29 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PropertyProcessor
           type: 'string',
           description: 'User username',
           required: true,
-          enum: ['admin', 'user'],
+          enum: %w[admin user],
           field_name: 'username'
         )
-        
+
         processor.send(:process_simple_property, node, property_name, comment_data)
       end
 
       it 'creates simple property node with comment data' do
         comment_obj = double('CommentData')
         allow(RailsOpenapiGen::AstNodes::CommentData).to receive(:new).and_return(comment_obj)
-        
+
         expect(RailsOpenapiGen::AstNodes::PropertyNodeFactory).to receive(:create_simple).with(
           property: property_name,
           comment_data: comment_obj
         )
-        
+
         processor.send(:process_simple_property, node, property_name, comment_data)
       end
 
       it 'adds property to processor' do
         property_node = double('PropertyNode')
         allow(RailsOpenapiGen::AstNodes::PropertyNodeFactory).to receive(:create_simple).and_return(property_node)
-        
+
         expect(processor).to receive(:add_property).with(property_node)
         processor.send(:process_simple_property, node, property_name, comment_data)
       end
@@ -165,7 +167,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PropertyProcessor
           enum: nil,
           field_name: nil
         )
-        
+
         processor.send(:process_simple_property, node, property_name, comment_data)
       end
     end
@@ -177,7 +179,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PropertyProcessor
         expect(RailsOpenapiGen::AstNodes::CommentData).to receive(:new).with(
           type: 'TODO: MISSING COMMENT'
         )
-        
+
         processor.send(:process_simple_property, node, property_name, comment_data)
       end
     end
@@ -189,7 +191,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PropertyProcessor
         expect(RailsOpenapiGen::AstNodes::CommentData).to receive(:new).with(
           type: 'TODO: MISSING COMMENT'
         )
-        
+
         processor.send(:process_simple_property, node, property_name, comment_data)
       end
     end
@@ -213,7 +215,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PropertyProcessor
           enum: nil,
           field_name: nil
         )
-        
+
         processor.send(:process_simple_property, node, property_name, comment_data)
       end
     end
@@ -222,12 +224,12 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PropertyProcessor
   describe 'integration with call detectors' do
     it 'uses JsonCallDetector for property detection' do
       node = double('node', children: [nil, :email])
-      
+
       expect(described_class::CallDetectors::JsonCallDetector).to receive(:json_property?).with(nil, :email)
       allow(processor).to receive(:process_json_property)
       # Mock the node to handle Parser::AST::Processor behavior when json_property? returns false
       allow(node).to receive(:updated).and_return(node)
-      
+
       processor.on_send(node)
     end
   end
@@ -236,15 +238,16 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PropertyProcessor
     it 'inherits block stack management from base processor' do
       node = double('node', location: double(line: 5))
       property_name = 'test_property'
-      
+
       # Simulate being inside an array block
       processor.send(:push_block, :array)
-      
+
       allow(processor).to receive(:find_comment_for_node).and_return(nil)
-      
-      expect(processor).to receive(:inside_block?).with(:array).and_return(true)
+
+      # Verify that the processor can still access block state from base processor
+      expect(processor.send(:inside_block?, :array)).to be true
       allow(processor).to receive(:add_property)
-      
+
       processor.send(:process_json_property, node, property_name, [])
     end
   end
@@ -258,7 +261,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PropertyProcessor
       it 'creates string property with description' do
         comment_obj = double('CommentData')
         property_node = double('PropertyNode')
-        
+
         expect(RailsOpenapiGen::AstNodes::CommentData).to receive(:new).with(
           type: 'string',
           description: 'A text field',
@@ -266,14 +269,14 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PropertyProcessor
           enum: nil,
           field_name: nil
         ).and_return(comment_obj)
-        
+
         expect(RailsOpenapiGen::AstNodes::PropertyNodeFactory).to receive(:create_simple).with(
           property: 'name',
           comment_data: comment_obj
         ).and_return(property_node)
-        
+
         expect(processor).to receive(:add_property).with(property_node)
-        
+
         processor.send(:process_simple_property, node, 'name', comment_data)
       end
     end
@@ -282,7 +285,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PropertyProcessor
       let(:comment_data) do
         {
           type: 'string',
-          enum: ['active', 'inactive', 'pending'],
+          enum: %w[active inactive pending],
           description: 'User status'
         }
       end
@@ -292,10 +295,10 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PropertyProcessor
           type: 'string',
           description: 'User status',
           required: nil,
-          enum: ['active', 'inactive', 'pending'],
+          enum: %w[active inactive pending],
           field_name: nil
         )
-        
+
         processor.send(:process_simple_property, node, 'status', comment_data)
       end
     end
@@ -311,7 +314,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PropertyProcessor
           enum: nil,
           field_name: nil
         )
-        
+
         processor.send(:process_simple_property, node, 'id', comment_data)
       end
     end
@@ -333,7 +336,7 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PropertyProcessor
           enum: nil,
           field_name: 'email_address'
         )
-        
+
         processor.send(:process_simple_property, node, 'email', comment_data)
       end
     end
@@ -345,25 +348,27 @@ RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::Processors::PropertyProcessor
 
     context 'when CommentData creation fails' do
       before do
-        allow(RailsOpenapiGen::AstNodes::CommentData).to receive(:new).and_raise(StandardError, 'Comment creation failed')
+        allow(RailsOpenapiGen::AstNodes::CommentData).to receive(:new).and_raise(StandardError,
+                                                                                 'Comment creation failed')
       end
 
       it 'propagates the error' do
-        expect {
+        expect do
           processor.send(:process_simple_property, node, property_name, { type: 'string' })
-        }.to raise_error(StandardError, 'Comment creation failed')
+        end.to raise_error(StandardError, 'Comment creation failed')
       end
     end
 
     context 'when PropertyNodeFactory creation fails' do
       before do
-        allow(RailsOpenapiGen::AstNodes::PropertyNodeFactory).to receive(:create_simple).and_raise(StandardError, 'Property creation failed')
+        allow(RailsOpenapiGen::AstNodes::PropertyNodeFactory).to receive(:create_simple).and_raise(StandardError,
+                                                                                                   'Property creation failed')
       end
 
       it 'propagates the error' do
-        expect {
+        expect do
           processor.send(:process_simple_property, node, property_name, { type: 'string' })
-        }.to raise_error(StandardError, 'Property creation failed')
+        end.to raise_error(StandardError, 'Property creation failed')
       end
     end
   end

@@ -9,8 +9,8 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
       # @return [Boolean] True if key format method
       def key_format?(receiver, method_name)
         return false unless json_receiver?(receiver)
-        
-        key_format_methods = [:key_format!, :deep_format_keys!]
+
+        key_format_methods = %i[key_format! deep_format_keys!]
         key_format_methods.include?(method_name)
       end
 

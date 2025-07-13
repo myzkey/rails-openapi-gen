@@ -1,0 +1,64 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.2'
+        bundler-cache: true
+        
+    - name: Run tests
+      run: bundle exec rspec
+      
+    - name: Run linter
+      run: bundle exec rubocop
+      
+  release:
+    runs-on: ubuntu-latest
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.2'
+        bundler-cache: true
+        
+    - name: Configure Git
+      run: |
+        git config --global user.email "action@github.com"
+        git config --global user.name "GitHub Action"
+        
+    - name: Build gem
+      run: gem build rails-openapi-gen.gemspec
+      
+    - name: Publish to RubyGems
+      env:
+        GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_AUTH_TOKEN }}
+      run: |
+        mkdir -p ~/.gem
+        echo ":rubygems_api_key: ${GEM_HOST_API_KEY}" > ~/.gem/credentials
+        chmod 0600 ~/.gem/credentials
+        gem push rails-openapi-gen-*.gem
+        
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: rails-openapi-gen-*.gem
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -12,7 +12,7 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
       # @param method_name [Symbol] Method name
       # @param args [Array<Parser::AST::Node>] Method arguments
       # @return [Boolean] True if this is a partial call
-      def handles?(receiver, method_name, args = [])
+      def handles?(receiver, method_name, _args = [])
         partial_call?(receiver, method_name)
       end
 
@@ -45,23 +45,23 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
       # @return [String, nil] Partial path
       def extract_partial_path(args)
         return nil if args.empty?
-        
+
         first_arg = args.first
         return extract_string_value(first_arg) if literal_node?(first_arg)
-        
+
         # Check if it's in a hash under :partial key
         if first_arg.type == :hash
           partial_pair = first_arg.children.find do |pair|
             key_node = pair.children.first
             key_node.type == :sym && key_node.children.first == :partial
           end
-          
+
           if partial_pair
             value_node = partial_pair.children.last
             return extract_string_value(value_node)
           end
         end
-        
+
         nil
       end
 
@@ -70,24 +70,24 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
       # @return [Hash] Local variables hash
       def extract_locals(args)
         locals = {}
-        
+
         args.each do |arg|
           next unless arg.type == :hash
-          
+
           arg.children.each do |pair|
             next unless pair.type == :pair
-            
+
             key_node, value_node = pair.children
             next unless key_node.type == :sym
-            
+
             key = key_node.children.first
             next if key == :partial # Skip partial path
-            
+
             # For now, just store the key, value extraction would need evaluation
             locals[key] = value_node
           end
         end
-        
+
         locals
       end
 
@@ -103,6 +103,7 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
       # @return [Boolean] True if path is literal
       def literal_path?(args)
         return false if args.empty?
+
         literal_node?(args.first)
       end
 
@@ -112,7 +113,7 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
       def has_collection?(args)
         args.any? do |arg|
           next false unless arg.type == :hash
-          
+
           arg.children.any? do |pair|
             key_node = pair.children.first
             key_node.type == :sym && key_node.children.first == :collection

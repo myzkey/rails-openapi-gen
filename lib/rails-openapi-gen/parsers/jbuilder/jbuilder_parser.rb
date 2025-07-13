@@ -28,13 +28,13 @@ module RailsOpenapiGen::Parsers::Jbuilder
     # @return [RailsOpenapiGen::AstNodes::BaseNode] Root AST node
     def parse(parser_version: Parser::CurrentRuby)
       @ast_parser = AstParser.new(jbuilder_path, parser_version: parser_version)
-      
+
       return nil unless File.exist?(jbuilder_path)
-      
+
       @ast_parser.parse
     end
 
     # Alias for backward compatibility
-    alias_method :parse_ast, :parse
+    alias parse_ast parse
   end
 end

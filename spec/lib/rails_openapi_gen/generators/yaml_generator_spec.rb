@@ -17,7 +17,7 @@ RSpec.describe RailsOpenapiGen::Generators::YamlGenerator do
                   "id" => { "type" => "integer", "description" => "User ID" },
                   "name" => { "type" => "string", "description" => "User name" }
                 },
-                "required" => ["id", "name"]
+                "required" => %w[id name]
               }
             }
           }
@@ -33,7 +33,7 @@ RSpec.describe RailsOpenapiGen::Generators::YamlGenerator do
             "name" => { "type" => "string", "description" => "User name" },
             "email" => { "type" => "string", "description" => "User email" }
           },
-          "required" => ["id", "name"]
+          "required" => %w[id name]
         },
         parameters: {},
         operation: {}
@@ -52,7 +52,7 @@ RSpec.describe RailsOpenapiGen::Generators::YamlGenerator do
         split_files: true
       }
     end
-    
+
     FileUtils.rm_rf(output_dir) if Dir.exist?(output_dir)
   end
 
@@ -75,14 +75,14 @@ RSpec.describe RailsOpenapiGen::Generators::YamlGenerator do
         # Check for individual endpoint files
         users_file = File.join(output_dir, "paths", "users.yaml")
         users_id_file = File.join(output_dir, "paths", "users_id.yaml")
-        
+
         expect(File.exist?(users_file)).to be true
         expect(File.exist?(users_id_file)).to be true
 
         # Check content of each file
         users_content = YAML.load_file(users_file)
         users_id_content = YAML.load_file(users_id_file)
-        
+
         expect(users_content).to have_key("/users")
         expect(users_id_content).to have_key("/users/{id}")
       end
@@ -167,7 +167,7 @@ RSpec.describe RailsOpenapiGen::Generators::YamlGenerator do
             ],
             query_parameters: [
               { name: "include", type: "string", description: "Include relationships", required: "false" },
-              { name: "format", type: "string", enum: ["json", "xml"], required: "true" }
+              { name: "format", type: "string", enum: %w[json xml], required: "true" }
             ]
           },
           operation: {}
@@ -182,10 +182,10 @@ RSpec.describe RailsOpenapiGen::Generators::YamlGenerator do
 
       paths_file = File.join(output_dir, "paths", "users_id.yaml")
       content = YAML.load_file(paths_file)
-      
+
       parameters = content["/users/{id}"]["get"]["parameters"]
       path_param = parameters.find { |p| p["in"] == "path" }
-      
+
       expect(path_param["name"]).to eq("id")
       expect(path_param["required"]).to be true
       expect(path_param["schema"]["type"]).to eq("integer")
@@ -197,19 +197,19 @@ RSpec.describe RailsOpenapiGen::Generators::YamlGenerator do
 
       paths_file = File.join(output_dir, "paths", "users_id.yaml")
       content = YAML.load_file(paths_file)
-      
+
       parameters = content["/users/{id}"]["get"]["parameters"]
       query_params = parameters.select { |p| p["in"] == "query" }
-      
+
       expect(query_params.size).to eq(2)
-      
+
       include_param = query_params.find { |p| p["name"] == "include" }
       expect(include_param["required"]).to be false
       expect(include_param["description"]).to eq("Include relationships")
-      
+
       format_param = query_params.find { |p| p["name"] == "format" }
       expect(format_param["required"]).to be true
-      expect(format_param["schema"]["enum"]).to eq(["json", "xml"])
+      expect(format_param["schema"]["enum"]).to eq(%w[json xml])
     end
   end
 
@@ -237,14 +237,14 @@ RSpec.describe RailsOpenapiGen::Generators::YamlGenerator do
 
       paths_file = File.join(output_dir, "paths", "users.yaml")
       content = YAML.load_file(paths_file)
-      
+
       request_body = content["/users"]["post"]["requestBody"]
       expect(request_body["required"]).to be true
-      
+
       schema = request_body["content"]["application/json"]["schema"]
       expect(schema["type"]).to eq("object")
       expect(schema["required"]).to contain_exactly("name", "email")
-      
+
       properties = schema["properties"]
       expect(properties["name"]["type"]).to eq("string")
       expect(properties["email"]["format"]).to eq("email")
@@ -277,7 +277,7 @@ RSpec.describe RailsOpenapiGen::Generators::YamlGenerator do
 
       paths_file = File.join(output_dir, "paths", "users.yaml")
       content = YAML.load_file(paths_file)
-      
+
       operation = content["/users"]["get"]
       expect(operation["summary"]).to eq("List all users")
       expect(operation["description"]).to eq("Retrieves a paginated list of all users in the system")
@@ -318,7 +318,7 @@ RSpec.describe RailsOpenapiGen::Generators::YamlGenerator do
 
       paths_file = File.join(output_dir, "paths", "users.yaml")
       content = YAML.load_file(paths_file)
-      
+
       # Should only contain the valid schema
       expect(content.keys).to eq(["/users"])
       expect(content).not_to have_key("/empty")
@@ -327,7 +327,6 @@ RSpec.describe RailsOpenapiGen::Generators::YamlGenerator do
   end
 
   describe "utility methods" do
-
     describe "#humanize" do
       it "converts strings to human readable format" do
         expect(generator.send(:humanize, "user_posts")).to eq("User Posts")
@@ -353,9 +352,9 @@ RSpec.describe RailsOpenapiGen::Generators::YamlGenerator do
             :array => [{ :item => "test" }]
           }
         }
-        
+
         result = generator.send(:deep_stringify_keys, input)
-        
+
         expect(result["title"]).to eq("Test")
         expect(result["nested"]["key"]).to eq("value")
         expect(result["nested"]["array"][0]["item"]).to eq("test")

@@ -1,0 +1,24 @@
+version: 2
+updates:
+  - package-ecosystem: "bundler"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    
+  - package-ecosystem: "bundler"
+    directory: "/examples/rails_app"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    
+  - package-ecosystem: "bundler"
+    directory: "/examples/rails_gen_comment"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

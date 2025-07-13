@@ -7,7 +7,7 @@ RSpec.describe RailsOpenapiGen::AstNodes::CommentData do
         type: 'string',
         description: 'Test description',
         required: false,
-        enum: ['a', 'b', 'c'],
+        enum: %w[a b c],
         conditional: true,
         format: 'date-time',
         example: 'test example'
@@ -16,7 +16,7 @@ RSpec.describe RailsOpenapiGen::AstNodes::CommentData do
       expect(comment_data.type).to eq('string')
       expect(comment_data.description).to eq('Test description')
       expect(comment_data.required).to be false
-      expect(comment_data.enum).to eq(['a', 'b', 'c'])
+      expect(comment_data.enum).to eq(%w[a b c])
       expect(comment_data.conditional).to be true
       expect(comment_data.format).to eq('date-time')
       expect(comment_data.example).to eq('test example')
@@ -24,7 +24,7 @@ RSpec.describe RailsOpenapiGen::AstNodes::CommentData do
 
     it 'sets default values' do
       comment_data = described_class.new
-      
+
       expect(comment_data.type).to be_nil
       expect(comment_data.description).to be_nil
       expect(comment_data.required).to be true  # Default is true
@@ -54,7 +54,7 @@ RSpec.describe RailsOpenapiGen::AstNodes::CommentData do
 
   describe '#has_enum?' do
     it 'returns true when enum is present' do
-      comment_data = described_class.new(enum: ['a', 'b'])
+      comment_data = described_class.new(enum: %w[a b])
       expect(comment_data.has_enum?).to be true
     end
 
@@ -77,7 +77,7 @@ RSpec.describe RailsOpenapiGen::AstNodes::CommentData do
 
     it 'returns nil when format is nil' do
       comment_data = described_class.new(format: nil)
-      expect(comment_data.has_format?).to be_nil  # nil && !nil.empty? returns nil
+      expect(comment_data.has_format?).to be_nil # nil && !nil.empty? returns nil
     end
 
     it 'returns false when format is empty string' do
@@ -117,14 +117,14 @@ RSpec.describe RailsOpenapiGen::AstNodes::CommentData do
 
       hash = comment_data.to_h
       expect(hash).to eq({
-        type: 'integer',
-        description: 'User ID',
-        required: false,
-        enum: [1, 2, 3],
-        conditional: true,
-        format: 'int64',
-        example: 123
-      })
+                           type: 'integer',
+                           description: 'User ID',
+                           required: false,
+                           enum: [1, 2, 3],
+                           conditional: true,
+                           format: 'int64',
+                           example: 123
+                         })
     end
 
     it 'compacts nil values in hash' do
@@ -171,7 +171,7 @@ RSpec.describe RailsOpenapiGen::AstNodes::CommentData do
   describe 'conditional scenarios' do
     it 'handles conditional properties correctly' do
       comment_data = described_class.new(conditional: true, required: true)
-      
+
       # Even if marked as required, conditional properties are treated specially
       expect(comment_data.conditional).to be true
       expect(comment_data.required?).to be true
@@ -179,7 +179,7 @@ RSpec.describe RailsOpenapiGen::AstNodes::CommentData do
 
     it 'handles non-conditional properties' do
       comment_data = described_class.new(conditional: false, required: true)
-      
+
       expect(comment_data.conditional).to be false
       expect(comment_data.required?).to be true
     end

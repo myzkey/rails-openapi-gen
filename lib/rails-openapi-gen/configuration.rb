@@ -61,7 +61,6 @@ module RailsOpenapiGen
       end
     end
 
-
     # Returns the full path to the output directory
     # @return [String] Full output directory path
     def output_directory
@@ -97,7 +96,7 @@ module RailsOpenapiGen
     def route_included?(path)
       # Ensure @route_patterns is properly initialized
       @route_patterns ||= { include: [/.*/], exclude: [] }
-      
+
       # Check if path matches any include pattern
       included = (@route_patterns[:include] || []).any? { |pattern| path.match?(pattern) }
       return false unless included
@@ -113,13 +112,13 @@ module RailsOpenapiGen
     def remove_api_prefix(path)
       # Ensure @view_paths is properly initialized
       @view_paths ||= { api_prefix: nil }
-      
+
       api_prefix = @view_paths[:api_prefix]
       return path unless api_prefix
-      
+
       # Normalize the prefix (ensure it starts and ends properly)
-      normalized_prefix = "/#{api_prefix}".gsub(/\/+/, '/').chomp('/')
-      
+      normalized_prefix = "/#{api_prefix}".gsub(%r{/+}, '/').chomp('/')
+
       # Remove the prefix if the path starts with it
       if path.start_with?(normalized_prefix)
         remaining_path = path[normalized_prefix.length..-1]
@@ -136,13 +135,13 @@ module RailsOpenapiGen
     def remove_component_prefix(component_name)
       # Ensure @view_paths is properly initialized
       @view_paths ||= { component_prefix: nil }
-      
+
       component_prefix = @view_paths[:component_prefix]
       return component_name unless component_prefix
-      
+
       # Convert to PascalCase for matching
-      normalized_prefix = component_prefix.split(/[\/\-_]/).map(&:capitalize).join('')
-      
+      normalized_prefix = component_prefix.split(%r{[/\-_]}).map(&:capitalize).join('')
+
       # Remove the prefix if the component name starts with it
       if component_name.start_with?(normalized_prefix)
         remaining_name = component_name[normalized_prefix.length..-1]
@@ -181,17 +180,17 @@ module RailsOpenapiGen
     def load_ruby_config(file_path)
       # Save current configuration as backup
       old_config = RailsOpenapiGen.instance_variable_get(:@configuration)
-      
+
       # Temporarily set this instance as the global configuration
       # so that the configure block updates this instance
       RailsOpenapiGen.instance_variable_set(:@configuration, self)
-      
+
       begin
         # Load Ruby configuration file
         # The file should call RailsOpenapiGen.configure block
         load file_path
         puts "✅ Configuration loaded successfully" if ENV['RAILS_OPENAPI_DEBUG']
-      rescue => e
+      rescue StandardError => e
         puts "❌ Error loading configuration: #{e.message}" if ENV['RAILS_OPENAPI_DEBUG']
         raise e
       ensure
@@ -206,7 +205,7 @@ module RailsOpenapiGen
     def load_yaml_config(file_path)
       require 'yaml'
       config_hash = YAML.load_file(file_path)
-      
+
       # Apply YAML configuration to this instance
       config_hash.each do |key, value|
         case key.to_s
@@ -226,7 +225,7 @@ module RailsOpenapiGen
           @view_paths = symbolize_keys(value)
         end
       end
-      
+
       puts "✅ YAML configuration loaded successfully" if ENV['RAILS_OPENAPI_DEBUG']
     end
 
@@ -234,9 +233,11 @@ module RailsOpenapiGen
     # @return [String] Default app name
     def default_app_name
       if defined?(Rails) && Rails.application
-        Rails.application.class.respond_to?(:module_parent_name) ? 
-          Rails.application.class.module_parent_name : 
+        if Rails.application.class.respond_to?(:module_parent_name)
+          Rails.application.class.module_parent_name
+        else
           "RailsApp"
+        end
       else
         "API"
       end
@@ -247,16 +248,16 @@ module RailsOpenapiGen
     # @return [Hash] Hash with symbolized keys
     def symbolize_keys(hash)
       return hash unless hash.is_a?(Hash)
+
       hash.transform_keys(&:to_sym)
     end
-
 
     # Loads output configuration settings
     # @param output_config [Hash] Output configuration hash
     # @return [void]
     def load_output_config(output_config)
       output_settings = symbolize_keys(output_config)
-      
+
       @output[:directory] = output_settings[:directory] if output_settings[:directory]
       @output[:filename] = output_settings[:filename] if output_settings[:filename]
       @output[:split_files] = output_settings[:split_files] if output_settings.key?(:split_files)

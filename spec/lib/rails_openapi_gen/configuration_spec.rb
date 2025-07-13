@@ -31,8 +31,8 @@ RSpec.describe RailsOpenapiGen::Configuration do
     context "with custom patterns" do
       before do
         config.route_patterns = {
-          include: [/^\/api\/v1\//],
-          exclude: [/\/health/, /\/metrics/]
+          include: [%r{^/api/v1/}],
+          exclude: [%r{/health}, %r{/metrics}]
         }
       end
 

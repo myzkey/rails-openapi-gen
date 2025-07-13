@@ -34,7 +34,7 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
           puts "🔍 DEBUG: DetectorRegistry.find_detector called with method: #{method_name}"
           puts "🔍 DEBUG: Available detectors: #{all_detectors.map(&:name)}"
         end
-        
+
         result = all_detectors.find do |detector|
           handles = detector.handles?(receiver, method_name, args)
           if ENV['RAILS_OPENAPI_DEBUG']
@@ -42,11 +42,11 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
           end
           handles
         end
-        
+
         if ENV['RAILS_OPENAPI_DEBUG']
           puts "🔍 DEBUG: Found detector: #{result ? result.name : 'nil'}"
         end
-        
+
         result
       end
 
@@ -68,7 +68,7 @@ module RailsOpenapiGen::Parsers::Jbuilder::CallDetectors
       # @return [void]
       def register(detector_class)
         return unless detector_class < BaseDetector
-        
+
         @all_detectors = nil # Reset cache
         all_detectors << detector_class unless all_detectors.include?(detector_class)
         @all_detectors = all_detectors.sort_by { |detector| -detector.priority }

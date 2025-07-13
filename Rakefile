@@ -8,7 +8,7 @@ RSpec::Core::RakeTask.new(:spec)
 RuboCop::RakeTask.new
 
 desc "Run tests and linter"
-task default: [:spec, :rubocop]
+task default: %i[spec rubocop]
 
 desc "Run tests only"
 task test: :spec

@@ -32,9 +32,9 @@ RSpec.describe RailsOpenapiGen::AstNodes::NodeFactory do
     end
 
     it 'requires property_name' do
-      expect {
+      expect do
         described_class.create_property
-      }.to raise_error(ArgumentError)
+      end.to raise_error(ArgumentError)
     end
   end
 
@@ -52,7 +52,7 @@ RSpec.describe RailsOpenapiGen::AstNodes::NodeFactory do
       expect(node.is_conditional).to be true
     end
 
-    # Note: create_object requires property_name parameter according to implementation
+    # NOTE: create_object requires property_name parameter according to implementation
     it 'creates ObjectNode with required property_name' do
       node = described_class.create_object(property_name: 'test')
 
@@ -150,9 +150,9 @@ RSpec.describe RailsOpenapiGen::AstNodes::NodeFactory do
     end
 
     it 'requires partial_path' do
-      expect {
+      expect do
         described_class.create_partial
-      }.to raise_error(ArgumentError)
+      end.to raise_error(ArgumentError)
     end
   end
 

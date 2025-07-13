@@ -74,7 +74,7 @@ RSpec.describe RailsOpenapiGen do
             comment_data: {
               field_name: "status",
               type: "string",
-              enum: ["active", "inactive"],
+              enum: %w[active inactive],
               description: "User status"
             }
           },
@@ -118,15 +118,15 @@ RSpec.describe RailsOpenapiGen do
 
         expect(schema["required"]).to include("id")
         expect(schema["required"]).to include("name")
-        expect(schema["required"]).to include("status")  # Now required by default
-        expect(schema["required"]).to include("missing_comment_field")  # Now required by default
+        expect(schema["required"]).to include("status") # Now required by default
+        expect(schema["required"]).to include("missing_comment_field") # Now required by default
         expect(schema["required"]).not_to include("optional_field")  # Explicitly marked as required:false
       end
 
       it "includes enum values" do
         schema = generator.send(:build_schema, mock_ast)
 
-        expect(schema["properties"]["status"]["enum"]).to eq(["active", "inactive"])
+        expect(schema["properties"]["status"]["enum"]).to eq(%w[active inactive])
       end
 
       it "includes descriptions" do
@@ -168,7 +168,11 @@ RSpec.describe RailsOpenapiGen do
 
       it "runs openapi:generate command" do
         expect(checker).to receive(:system).with("bin/rails openapi:generate")
-        checker.run rescue nil
+        begin
+          checker.run
+        rescue StandardError
+          nil
+        end
       end
 
       context "when no missing comments" do

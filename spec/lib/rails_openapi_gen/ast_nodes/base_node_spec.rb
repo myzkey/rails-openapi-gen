@@ -14,7 +14,7 @@ RSpec.describe RailsOpenapiGen::AstNodes::BaseNode do
     it 'accepts parent and metadata' do
       parent = described_class.new
       node_with_data = described_class.new(parent: parent, metadata: metadata)
-      
+
       expect(node_with_data.parent).to eq(parent)
       expect(node_with_data.metadata).to eq(metadata)
     end
@@ -151,6 +151,7 @@ RSpec.describe RailsOpenapiGen::AstNodes::BaseNode do
       let(:node_with_name) do
         Class.new(described_class) do
           attr_reader :property_name
+
           def initialize(property_name: nil, **args)
             super(**args)
             @property_name = property_name

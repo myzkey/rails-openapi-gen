@@ -38,9 +38,9 @@ RSpec.describe RailsOpenapiGen::AstNodes::PartialNode do
     end
 
     it 'requires partial_path' do
-      expect {
+      expect do
         described_class.new
-      }.to raise_error(ArgumentError, /partial_path/)
+      end.to raise_error(ArgumentError, /partial_path/)
     end
   end
 
@@ -246,11 +246,11 @@ RSpec.describe RailsOpenapiGen::AstNodes::PartialNode do
       )
 
       expect(node.local_variables).to eq({
-        user: 'current_user',
-        show_email: true,
-        include_address: false,
-        format: 'detailed'
-      })
+                                           user: 'current_user',
+                                           show_email: true,
+                                           include_address: false,
+                                           format: 'detailed'
+                                         })
     end
 
     it 'handles complex local var values' do
