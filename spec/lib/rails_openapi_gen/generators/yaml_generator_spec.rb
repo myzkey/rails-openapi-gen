@@ -72,12 +72,19 @@ RSpec.describe RailsOpenapiGen::Generators::YamlGenerator do
       it "generates paths files grouped by resource" do
         generator.generate
 
-        paths_file = File.join(output_dir, "paths", "users.yaml")
-        expect(File.exist?(paths_file)).to be true
+        # Check for individual endpoint files
+        users_file = File.join(output_dir, "paths", "users.yaml")
+        users_id_file = File.join(output_dir, "paths", "users_id.yaml")
+        
+        expect(File.exist?(users_file)).to be true
+        expect(File.exist?(users_id_file)).to be true
 
-        content = YAML.load_file(paths_file)
-        expect(content).to have_key("/users")
-        expect(content).to have_key("/users/{id}")
+        # Check content of each file
+        users_content = YAML.load_file(users_file)
+        users_id_content = YAML.load_file(users_id_file)
+        
+        expect(users_content).to have_key("/users")
+        expect(users_id_content).to have_key("/users/{id}")
       end
 
       it "generates main OpenAPI file with correct structure" do
@@ -144,7 +151,7 @@ RSpec.describe RailsOpenapiGen::Generators::YamlGenerator do
 
     it "includes tags based on controller" do
       operation = generator.send(:build_operation, route, schema)
-      expect(operation["tags"]).to include("Users")
+      expect(operation["tags"]).to include("users")
     end
   end
 
@@ -173,7 +180,7 @@ RSpec.describe RailsOpenapiGen::Generators::YamlGenerator do
     it "generates path parameters correctly" do
       param_generator.generate
 
-      paths_file = File.join(output_dir, "paths", "users.yaml")
+      paths_file = File.join(output_dir, "paths", "users_id.yaml")
       content = YAML.load_file(paths_file)
       
       parameters = content["/users/{id}"]["get"]["parameters"]
@@ -188,7 +195,7 @@ RSpec.describe RailsOpenapiGen::Generators::YamlGenerator do
     it "generates query parameters correctly" do
       param_generator.generate
 
-      paths_file = File.join(output_dir, "paths", "users.yaml")
+      paths_file = File.join(output_dir, "paths", "users_id.yaml")
       content = YAML.load_file(paths_file)
       
       parameters = content["/users/{id}"]["get"]["parameters"]
@@ -320,15 +327,6 @@ RSpec.describe RailsOpenapiGen::Generators::YamlGenerator do
   end
 
   describe "utility methods" do
-    describe "#extract_resource_name" do
-      it "extracts resource names correctly" do
-        expect(generator.send(:extract_resource_name, "/users")).to eq("users")
-        expect(generator.send(:extract_resource_name, "/users/{id}")).to eq("users")
-        expect(generator.send(:extract_resource_name, "/api/v1/posts")).to eq("api")
-        expect(generator.send(:extract_resource_name, "")).to eq("root")
-        expect(generator.send(:extract_resource_name, "/")).to eq("root")
-      end
-    end
 
     describe "#humanize" do
       it "converts strings to human readable format" do
