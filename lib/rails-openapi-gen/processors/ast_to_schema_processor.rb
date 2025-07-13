@@ -6,6 +6,7 @@ module RailsOpenapiGen::Processors
   # Processor that converts AST nodes to OpenAPI schema format
   # Implements the visitor pattern to handle different node types
   class AstToSchemaProcessor < BaseProcessor
+    include RailsOpenapiGen::Logging
     def initialize
       super()
       @schema = {}
@@ -19,11 +20,11 @@ module RailsOpenapiGen::Processors
       @schema = {}
       @required_properties = []
 
-      puts "🔍 DEBUG: Using NEW AstToSchemaProcessor with node: #{root_node.class.name}" if ENV['RAILS_OPENAPI_DEBUG']
-      if root_node.respond_to?(:properties) && ENV['RAILS_OPENAPI_DEBUG']
-        puts "🔍 DEBUG: Root node has #{root_node.properties.size} properties"
+      logger.debug("Using NEW AstToSchemaProcessor with node: #{root_node.class.name}")
+      if root_node.respond_to?(:properties)
+        logger.debug("Root node has #{root_node.properties.size} properties")
         root_node.properties.each_with_index do |prop, i|
-          puts "🔍 DEBUG: Property #{i}: #{prop.property_name} (#{prop.class.name})"
+          logger.debug("Property #{i}: #{prop.property_name} (#{prop.class.name})")
         end
       end
 
@@ -59,7 +60,7 @@ module RailsOpenapiGen::Processors
 
       # Add format if specified
       if node.comment_data&.has_format?
-        schema['format'] = node.comment_data.format
+        schema['format'] = node.comment_data.format_value
       end
 
       # Add example if specified
@@ -164,7 +165,7 @@ module RailsOpenapiGen::Processors
     # @param node [RailsOpenapiGen::AstNodes::PartialNode] Partial node
     # @return [Hash] Schema from partial
     def visit_partial(node)
-      puts "🔍 DEBUG: Processing partial node: #{node.partial_path}, properties: #{node.properties.size}" if ENV['RAILS_OPENAPI_DEBUG']
+      logger.debug("Processing partial node: #{node.partial_path}, properties: #{node.properties.size}")
 
       # Process the properties from the parsed partial
       if node.properties.any?
@@ -173,7 +174,7 @@ module RailsOpenapiGen::Processors
         required = []
 
         node.properties.each do |property|
-          puts "🔍 DEBUG: Processing partial property: #{property.property_name} (#{property.class.name})" if ENV['RAILS_OPENAPI_DEBUG']
+          logger.debug("Processing partial property: #{property.property_name} (#{property.class.name})")
           prop_schema = process(property)
           next unless prop_schema
 
@@ -189,10 +190,10 @@ module RailsOpenapiGen::Processors
         schema['required'] = required if required.any?
         schema['description'] = extract_description(node.comment_data) if node.comment_data&.description
 
-        puts "🔍 DEBUG: Partial schema generated: #{schema.keys}" if ENV['RAILS_OPENAPI_DEBUG']
+        logger.debug("Partial schema generated: #{schema.keys}")
         schema
       else
-        puts "🔍 DEBUG: Partial has no properties, using fallback" if ENV['RAILS_OPENAPI_DEBUG']
+        logger.debug("Partial has no properties, using fallback")
         # Fallback to basic object schema
         {
           'type' => 'object',

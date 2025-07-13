@@ -24,10 +24,9 @@ module RailsOpenapiGen::Parsers::Jbuilder
     end
 
     # Main parsing method using AST-based architecture
-    # @param parser_version [Parser] Parser version to use (defaults to Parser::CurrentRuby)
     # @return [RailsOpenapiGen::AstNodes::BaseNode] Root AST node
-    def parse(parser_version: Parser::CurrentRuby)
-      @ast_parser = AstParser.new(jbuilder_path, parser_version: parser_version)
+    def parse
+      @ast_parser = AstParser.new(jbuilder_path)
 
       return nil unless File.exist?(jbuilder_path)
 

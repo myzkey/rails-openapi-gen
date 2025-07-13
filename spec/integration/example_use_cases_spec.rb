@@ -132,7 +132,6 @@ RSpec.describe 'Example Use Cases Integration' do
     end
 
     it 'generates correct schema for orders endpoint' do
-      pending "Skipping integration tests due to Parser gem version compatibility issues"
       parser = RailsOpenapiGen::Parsers::Jbuilder::AstParser.new('app/views/api/users/orders/index.json.jbuilder')
       ast = parser.parse
 
@@ -173,7 +172,6 @@ RSpec.describe 'Example Use Cases Integration' do
     end
 
     it 'generates valid OpenAPI schema using AstToSchemaProcessor' do
-      pending "Skipping integration tests due to Parser gem version compatibility issues"
       parser = RailsOpenapiGen::Parsers::Jbuilder::AstParser.new('app/views/api/users/orders/index.json.jbuilder')
       ast = parser.parse
 
@@ -310,7 +308,6 @@ RSpec.describe 'Example Use Cases Integration' do
     end
 
     it 'correctly handles conditional properties' do
-      pending "Skipping integration tests due to Parser gem version compatibility issues"
       parser = RailsOpenapiGen::Parsers::Jbuilder::AstParser.new('app/views/users/show.json.jbuilder')
       ast = parser.parse
 
@@ -329,7 +326,6 @@ RSpec.describe 'Example Use Cases Integration' do
     end
 
     it 'generates schema with conditional properties marked as optional' do
-      pending "Skipping integration tests due to Parser gem version compatibility issues"
       parser = RailsOpenapiGen::Parsers::Jbuilder::AstParser.new('app/views/users/show.json.jbuilder')
       ast = parser.parse
 

@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |spec|
   spec.name = "rails-openapi-gen"
-  spec.version = "0.0.2"
+  spec.version = "0.0.4"
   spec.authors = ["myzkey"]
   spec.email = ["myzkey.dev@example.com"]
 
@@ -20,7 +20,7 @@ Gem::Specification.new do |spec|
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "parser", ">= 3.0.0"
+  spec.add_dependency "parser", "~> 3.1.0"
   spec.add_dependency "rails", ">= 6.0"
   spec.add_dependency "yaml", "~> 0.2"
 
