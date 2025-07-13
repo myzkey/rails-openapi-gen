@@ -4,7 +4,7 @@
     summary: Index Api/dashboard
     operationId: dashboard_index
     tags:
-    - Api
+    - dashboard
     responses:
       '200':
         description: Successful response

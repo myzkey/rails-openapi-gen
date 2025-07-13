@@ -4,7 +4,8 @@
     summary: Index Api/comment
     operationId: comments_index
     tags:
-    - Api
+    - comments
+    - posts
     parameters:
     - name: post_id
       in: path

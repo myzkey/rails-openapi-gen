@@ -4,7 +4,8 @@
     summary: Index Api/post
     operationId: posts_index
     tags:
-    - Api
+    - posts
+    - users
     parameters:
     - name: user_id
       in: path
@@ -59,7 +60,8 @@
     summary: Create Api/post
     operationId: posts_create
     tags:
-    - Api
+    - posts
+    - users
     parameters:
     - name: user_id
       in: path

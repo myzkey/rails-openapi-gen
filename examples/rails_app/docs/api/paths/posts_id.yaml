@@ -4,7 +4,7 @@
     summary: Show Api/post
     operationId: posts_show
     tags:
-    - Api
+    - posts
     parameters:
     - name: id
       in: path

@@ -4,7 +4,7 @@
     summary: Index Api/post
     operationId: posts_index
     tags:
-    - Api
+    - posts
     responses:
       '200':
         description: Successful response

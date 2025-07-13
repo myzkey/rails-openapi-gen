@@ -21,7 +21,6 @@ properties:
           properties:
             order_item:
               type: object
-              description: Inline expanded content from ApiOrdersModelOrderItem
           required:
           - order_item
     required:
@@ -31,7 +30,6 @@ properties:
     properties:
       address:
         type: object
-        description: Inline expanded content from ApiUsersModelAddress
     required:
     - address
   payment_method:
@@ -39,7 +37,6 @@ properties:
     properties:
       payment_method:
         type: object
-        description: Inline expanded content from ApiOrdersModelPaymentMethod
     required:
     - payment_method
 required:

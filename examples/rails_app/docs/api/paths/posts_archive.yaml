@@ -4,7 +4,8 @@
     summary: Archive Api/post
     operationId: posts_archive
     tags:
-    - Api
+    - posts
+    - archive
     responses:
       '200':
         description: Successful response

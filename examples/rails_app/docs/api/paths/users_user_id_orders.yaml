@@ -4,7 +4,8 @@
     summary: Index Api/users/order
     operationId: users_orders_index
     tags:
-    - Api
+    - users
+    - orders
     parameters:
     - name: user_id
       in: path

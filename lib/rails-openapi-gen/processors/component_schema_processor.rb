@@ -27,11 +27,9 @@ module RailsOpenapiGen::Processors
     # @param node [RailsOpenapiGen::AstNodes::PropertyNode] Component reference property
     # @return [Hash] Inline expanded schema
     def inline_expand_component_reference(node)
-      # Create a basic object schema as placeholder
-      # In a real implementation, you might want to parse the referenced partial
+      # Create a basic object schema as placeholder without auto-generated description
       {
-        'type' => 'object',
-        'description' => "Inline expanded content from #{node.component_name}"
+        'type' => 'object'
       }
     end
   end

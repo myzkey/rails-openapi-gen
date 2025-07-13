@@ -24,7 +24,7 @@ paths:
       summary: Index Api/dashboard
       operationId: dashboard_index
       tags:
-      - Api
+      - dashboard
       responses:
         '200':
           description: Successful response
@@ -87,7 +87,7 @@ paths:
       summary: Show Api/order
       operationId: orders_show
       tags:
-      - Api
+      - orders
       parameters:
       - name: id
         in: path
@@ -154,7 +154,7 @@ paths:
       summary: Index Api/post
       operationId: posts_index
       tags:
-      - Api
+      - posts
       responses:
         '200':
           description: Successful response
@@ -204,7 +204,8 @@ paths:
       summary: Archive Api/post
       operationId: posts_archive
       tags:
-      - Api
+      - posts
+      - archive
       responses:
         '200':
           description: Successful response
@@ -275,7 +276,7 @@ paths:
       summary: Show Api/post
       operationId: posts_show
       tags:
-      - Api
+      - posts
       parameters:
       - name: id
         in: path
@@ -322,7 +323,8 @@ paths:
       summary: Index Api/comment
       operationId: comments_index
       tags:
-      - Api
+      - comments
+      - posts
       parameters:
       - name: post_id
         in: path
@@ -365,7 +367,8 @@ paths:
       summary: Index Api/users/order
       operationId: users_orders_index
       tags:
-      - Api
+      - users
+      - orders
       parameters:
       - name: user_id
         in: path
@@ -391,7 +394,8 @@ paths:
       summary: Index Api/post
       operationId: posts_index
       tags:
-      - Api
+      - posts
+      - users
       parameters:
       - name: user_id
         in: path
@@ -446,7 +450,8 @@ paths:
       summary: Create Api/post
       operationId: posts_create
       tags:
-      - Api
+      - posts
+      - users
       parameters:
       - name: user_id
         in: path
@@ -479,7 +484,8 @@ paths:
       summary: Show Api/post
       operationId: posts_show
       tags:
-      - Api
+      - posts
+      - users
       parameters:
       - name: user_id
         in: path

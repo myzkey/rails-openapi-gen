@@ -4,7 +4,7 @@
     summary: Show Api/order
     operationId: orders_show
     tags:
-    - Api
+    - orders
     parameters:
     - name: id
       in: path

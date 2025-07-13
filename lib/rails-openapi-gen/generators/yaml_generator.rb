@@ -130,7 +130,7 @@ module RailsOpenapiGen
         operation = {
           "summary" => operation_info&.dig(:summary) || "#{humanize(route[:action])} #{humanize(singularize(route[:controller]))}",
           "operationId" => operation_info&.dig(:operationId) || default_operation_id,
-          "tags" => operation_info&.dig(:tags) || [humanize(route[:controller].split('/').first)]
+          "tags" => operation_info&.dig(:tags) || generate_tag_names(route)
         }
 
         # Add description if provided
@@ -276,6 +276,15 @@ module RailsOpenapiGen
                           .downcase                           # Convert to lowercase
       end
 
+      # Convert PascalCase/camelCase string to snake_case
+      # @param string [String] String to convert
+      # @return [String] snake_case string
+      def to_snake_case(string)
+        string.to_s
+              .gsub(/([a-z\d])([A-Z])/, '\1_\2')  # Insert underscore before capital letters
+              .downcase                          # Convert to lowercase
+      end
+
       # Generate operationId with prefix removal from controller path
       # @param route [Hash] Route information
       # @return [String] Operation ID with prefix removed
@@ -311,6 +320,46 @@ module RailsOpenapiGen
         else
           controller_path
         end
+      end
+
+      # Generate multiple tags based on URL path and controller path
+      # @param route [Hash] Route information
+      # @return [Array<String>] Array of tag names for the resources
+      def generate_tag_names(route)
+        controller_path = route[:controller]
+        url_path = route[:path]
+        
+        # Remove API prefix from controller path
+        controller_without_prefix = remove_controller_prefix(controller_path)
+        
+        # Also extract resource names from URL path for nested routes
+        url_without_prefix = @config.remove_api_prefix(url_path)
+        
+        tags = []
+        
+        # Extract tags from controller path
+        controller_parts = controller_without_prefix.split('/')
+        controller_parts.each do |part|
+          next if part.empty?
+          tag = to_snake_case(part)
+          tags << tag unless tags.include?(tag)
+        end
+        
+        # Extract additional tags from URL path for nested resources
+        # Match patterns like /users/{id}/posts to extract "users"
+        url_segments = url_without_prefix.split('/').reject(&:empty?)
+        
+        url_segments.each do |segment|
+          # Skip parameter segments like {id} or :id
+          next if segment.match(/^[:{].*[}]?$/)
+          
+          # Convert to snake_case for consistency
+          tag = segment.downcase.gsub('-', '_')
+          tags << tag unless tags.include?(tag)
+        end
+        
+        # Ensure we always have at least one tag
+        tags.empty? ? ["Api"] : tags.uniq
       end
 
       # Builds OpenAPI parameter objects from route and parameter data
