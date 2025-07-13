@@ -2,7 +2,8 @@
 
 module RailsOpenapiGen
   class Configuration
-    attr_accessor :openapi_version, :info, :servers, :route_patterns, :output, :view_paths
+    include RailsOpenapiGen::Logging
+    attr_accessor :openapi_version, :info, :servers, :route_patterns, :output, :view_paths, :logger_config
 
     # Initializes configuration with default values
     def initialize
@@ -31,6 +32,12 @@ module RailsOpenapiGen
         api_prefix: nil,         # No API path prefix removal by default
         component_prefix: nil    # No component name prefix removal by default
       }
+      @logger_config = {
+        level: :info,
+        output: nil,
+        colorize: true,
+        format: :default
+      }
     end
 
     # TODO: Loads configuration from Ruby file
@@ -45,11 +52,11 @@ module RailsOpenapiGen
 
       # Check if file exists
       unless File.exist?(file_path)
-        puts "⚠️  Configuration file not found: #{file_path}" if ENV['RAILS_OPENAPI_DEBUG']
+        logger.debug("Configuration file not found: #{file_path}", emoji: :warn)
         return
       end
 
-      puts "📁 Loading configuration from: #{file_path}" if ENV['RAILS_OPENAPI_DEBUG']
+      logger.debug("Loading configuration from: #{file_path}", emoji: :folder)
 
       # Load the configuration file
       if file_path.end_with?('.rb')
@@ -57,7 +64,7 @@ module RailsOpenapiGen
       elsif file_path.end_with?('.yml', '.yaml')
         load_yaml_config(file_path)
       else
-        puts "❌ Unsupported configuration file format: #{file_path}"
+        logger.error("Unsupported configuration file format: #{file_path}")
       end
     end
 
@@ -81,6 +88,20 @@ module RailsOpenapiGen
     # @return [Boolean] True if files should be split
     def split_files?
       @output[:split_files]
+    end
+
+    # Configure logger settings
+    # @param logger_options [Hash] Logger configuration options
+    # @return [void]
+    def configure_logger(logger_options = {})
+      @logger_config.merge!(logger_options)
+      apply_logger_configuration
+    end
+
+    # Apply logger configuration to the logger instance
+    # @return [void]
+    def apply_logger_configuration
+      RailsOpenapiGen.logger.configure(**@logger_config)
     end
 
     # Updates output configuration
@@ -189,9 +210,9 @@ module RailsOpenapiGen
         # Load Ruby configuration file
         # The file should call RailsOpenapiGen.configure block
         load file_path
-        puts "✅ Configuration loaded successfully" if ENV['RAILS_OPENAPI_DEBUG']
+        logger.debug("Configuration loaded successfully", emoji: :success)
       rescue StandardError => e
-        puts "❌ Error loading configuration: #{e.message}" if ENV['RAILS_OPENAPI_DEBUG']
+        logger.error("Error loading configuration: #{e.message}")
         raise e
       ensure
         # Restore original global configuration
@@ -223,10 +244,13 @@ module RailsOpenapiGen
           @output = symbolize_keys(value)
         when 'view_paths'
           @view_paths = symbolize_keys(value)
+        when 'logger'
+          @logger_config.merge!(symbolize_keys(value))
+          apply_logger_configuration
         end
       end
 
-      puts "✅ YAML configuration loaded successfully" if ENV['RAILS_OPENAPI_DEBUG']
+      logger.debug("YAML configuration loaded successfully", emoji: :success)
     end
 
     # Returns default application name

@@ -7,6 +7,7 @@ require_relative "../processors/component_schema_processor"
 module RailsOpenapiGen
   module Generators
     class YamlGenerator
+      include RailsOpenapiGen::Logging
       attr_reader :schemas, :components
 
       # Initializes YAML generator with schemas data
@@ -22,27 +23,43 @@ module RailsOpenapiGen
       # Generates OpenAPI YAML files from schemas
       # @return [void]
       def generate
+        logger.info("Starting YAML generation for #{@schemas.size} routes...")
         setup_directories
 
         paths_data = {}
+        skipped_routes = 0
 
         @schemas.each do |route, data|
-          next if data.nil? || data[:schema].nil? || should_skip_schema?(data[:schema])
+          endpoint = "#{route[:method]} #{route[:path]}"
+          
+          if data.nil? || data[:schema].nil? || should_skip_schema?(data[:schema])
+            logger.debug("Skipping #{endpoint} (empty or invalid schema)")
+            skipped_routes += 1
+            next
+          end
 
           path_key = normalize_path(route[:path])
           method = route[:method].downcase
+          
+          logger.debug("Building operation for #{endpoint} -> #{path_key}")
 
           paths_data[path_key] ||= {}
           paths_data[path_key][method] = build_operation(route, data[:schema], data[:parameters], data[:operation])
         end
 
+        logger.info("Built operations for #{paths_data.size} unique paths (skipped #{skipped_routes} invalid routes)")
+
         if @config.split_files?
+          logger.info("Generating split YAML files...")
           write_endpoint_files(paths_data)
           write_component_files if @components && @components.any?
           write_main_openapi_file
         else
+          logger.info("Generating single YAML file...")
           write_single_file(paths_data)
         end
+        
+        logger.success("YAML generation completed!")
       end
 
       private
@@ -92,7 +109,7 @@ module RailsOpenapiGen
       def clean_paths_directory(paths_dir)
         Dir[File.join(paths_dir, "*.yaml")].each do |file|
           File.delete(file)
-          puts "🗑️  Removed existing path file: #{File.basename(file)}" if ENV['RAILS_OPENAPI_DEBUG']
+          logger.debug("Removed existing path file: #{File.basename(file)}", emoji: :delete)
         end
       end
 
@@ -102,7 +119,7 @@ module RailsOpenapiGen
       def clean_components_directory(components_dir)
         Dir[File.join(components_dir, "*.yaml")].each do |file|
           File.delete(file)
-          puts "🗑️  Removed existing component file: #{File.basename(file)}" if ENV['RAILS_OPENAPI_DEBUG']
+          logger.debug("Removed existing component file: #{File.basename(file)}", emoji: :delete)
         end
       end
 
@@ -166,20 +183,28 @@ module RailsOpenapiGen
       # @param paths_data [Hash] OpenAPI paths data
       # @return [void]
       def write_endpoint_files(paths_data)
-        paths_data.each do |path, operations|
+        logger.info("Writing #{paths_data.size} endpoint files...")
+        
+        paths_data.each_with_index do |(path, operations), index|
           endpoint_name = generate_endpoint_filename(path)
           file_data = { path => operations }
+          
+          methods = operations.keys.join(', ').upcase
+          progress = "[#{index + 1}/#{paths_data.size}]"
 
           file_path = File.join(@base_path, "paths", "#{endpoint_name}.yaml")
           File.write(file_path, file_data.to_yaml)
 
-          puts "📝 Written endpoint file: #{endpoint_name}.yaml" if ENV['RAILS_OPENAPI_DEBUG']
+          logger.debug("#{progress} Written #{path} (#{methods}) -> #{endpoint_name}.yaml", emoji: :file)
         end
+        
+        logger.success("All endpoint files written to paths/ directory")
       end
 
       # Writes main OpenAPI specification file
       # @return [void]
       def write_main_openapi_file
+        logger.info("Generating main OpenAPI specification file...")
         config = RailsOpenapiGen.configuration
 
         openapi_data = {
@@ -189,7 +214,11 @@ module RailsOpenapiGen
           "paths" => {}
         }
 
-        Dir[File.join(@base_path, "paths", "*.yaml")].each do |path_file|
+        # Collect all paths from individual files
+        path_files = Dir[File.join(@base_path, "paths", "*.yaml")]
+        logger.debug("Loading #{path_files.size} path files...")
+        
+        path_files.each do |path_file|
           paths = YAML.load_file(path_file)
           paths.each do |path, operations|
             openapi_data["paths"][path] = operations
@@ -198,10 +227,14 @@ module RailsOpenapiGen
 
         # Add components section with external references if we have any components
         if @components && @components.any?
+          logger.debug("Adding #{@components.size} component references...")
           openapi_data["components"] = generate_components_references
         end
 
-        File.write(File.join(@base_path, @config.output_filename), openapi_data.to_yaml)
+        main_file = File.join(@base_path, @config.output_filename)
+        File.write(main_file, openapi_data.to_yaml)
+        logger.success("Main OpenAPI file written: #{@config.output_filename}")
+        logger.info("📄 Total paths: #{openapi_data["paths"].size}")
       end
 
       # Writes all OpenAPI data to a single file
@@ -457,7 +490,7 @@ module RailsOpenapiGen
         }
 
         @components.each do |component_name, ast_node|
-          puts "📦 Generating component schema for: #{component_name}" if ENV['RAILS_OPENAPI_DEBUG']
+          logger.debug("Generating component schema for: #{component_name}", emoji: :component)
 
           # Convert AST node to OpenAPI schema
           schema = Processors::AstToSchemaProcessor.new.process_to_schema(ast_node)
@@ -481,7 +514,7 @@ module RailsOpenapiGen
           schema_name_without_prefix = @config.remove_component_prefix(component_name)
           kebab_filename = to_kebab_case(component_name)
 
-          puts "🔗 Creating reference for component: #{component_name} -> #{schema_name_without_prefix} (#{kebab_filename}.yaml)" if ENV['RAILS_OPENAPI_DEBUG']
+          logger.debug("Creating reference for component: #{component_name} -> #{schema_name_without_prefix} (#{kebab_filename}.yaml)", emoji: :reference)
 
           # Create $ref to external component file (using kebab-case filename)
           # Use schema name without prefix as the key
@@ -500,7 +533,7 @@ module RailsOpenapiGen
 
         @components.each do |component_name, ast_node|
           kebab_filename = to_kebab_case(component_name)
-          puts "📝 Writing component file: #{kebab_filename}.yaml" if ENV['RAILS_OPENAPI_DEBUG']
+          logger.debug("Writing component file: #{kebab_filename}.yaml", emoji: :file)
 
           # Convert AST node to OpenAPI schema (with inline expansion for components)
           schema = Processors::ComponentSchemaProcessor.new.process_to_schema(ast_node)
@@ -509,7 +542,7 @@ module RailsOpenapiGen
           file_path = File.join(@base_path, "components", "schemas", "#{kebab_filename}.yaml")
           File.write(file_path, schema.to_yaml)
 
-          puts "✅ Component file written: #{kebab_filename}.yaml" if ENV['RAILS_OPENAPI_DEBUG']
+          logger.debug("Component file written: #{kebab_filename}.yaml", emoji: :success)
         end
       end
     end

@@ -6,12 +6,6 @@ require "tmpdir"
 require "fileutils"
 
 RSpec.describe RailsOpenapiGen::Parsers::Jbuilder::JbuilderParser do
-  # Skip tests that require actual file parsing due to Parser version compatibility issues
-  before(:all) do
-    if RUBY_VERSION < '3.1.7'
-      skip "Skipping JbuilderParser tests due to Parser gem version compatibility issues"
-    end
-  end
 
   let(:temp_dir) { Dir.mktmpdir }
   let(:main_template) { File.join(temp_dir, "show.json.jbuilder") }

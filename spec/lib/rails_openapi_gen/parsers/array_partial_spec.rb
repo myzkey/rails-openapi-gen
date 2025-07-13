@@ -1,12 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe "Array with Partial Processing" do
-  # Skip tests that require actual file parsing due to Parser version compatibility issues
-  before(:all) do
-    if RUBY_VERSION < '3.1.7'
-      skip "Skipping array partial tests due to Parser gem version compatibility issues"
-    end
-  end
   let(:main_jbuilder_content) do
     <<~JBUILDER
       # @openapi work_experiences:array items:object

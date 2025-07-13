@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'rails-openapi-gen/version'
+require 'rails-openapi-gen/logger'
 require 'rails-openapi-gen/configuration'
 require 'parser/current'
 require 'pp'
@@ -26,6 +27,11 @@ module RailsOpenapiGen
   class Error < StandardError; end
 
   class << self
+    # Returns the logger instance
+    # @return [RailsOpenapiGen::Logger]
+    def logger
+      @logger ||= Logger.instance
+    end
     # Generates OpenAPI specification from Rails application
     # @return [void]
     def generate
@@ -47,34 +53,38 @@ module RailsOpenapiGen
   end
 
   class Checker
+    include RailsOpenapiGen::Logging
+    
     # Checks for missing OpenAPI comments and uncommitted changes
     # @return [void]
     def run
-      puts "🔍 Checking for missing comments and uncommitted changes..."
+      logger.info("Checking for missing comments and uncommitted changes...", emoji: :debug)
 
       # Run OpenAPI generation to check for missing comments
       system('bin/rails openapi:generate') || system('bundle exec rails openapi:generate')
 
       # Check for uncommitted changes in openapi directory
       if system('git diff --quiet docs/api/ 2>/dev/null')
-        puts "✅ All checks passed!"
+        logger.success("All checks passed!")
       else
-        puts "❌ Found uncommitted changes in OpenAPI files"
-        puts `git diff docs/api/`
+        logger.error("Found uncommitted changes in OpenAPI files")
+        logger.error(`git diff docs/api/`)
         exit 1
       end
     end
   end
 
   class Generator
+    include RailsOpenapiGen::Logging
+    
     # Runs the OpenAPI generation process
-    # @param parser_version [Parser] Parser version to use (defaults to Parser::CurrentRuby)
     # @return [void]
-    def run(parser_version: Parser::CurrentRuby)
+    def run
       # Load configuration
       RailsOpenapiGen.configuration.load_from_file
 
       routes = Parsers::RoutesParser.new.parse
+      logger.info("Found #{routes.size} total routes")
 
       # Debug: Show filtering configuration
       config = RailsOpenapiGen.configuration
@@ -85,48 +95,71 @@ module RailsOpenapiGen
         included
       end
 
+      logger.info("Processing #{filtered_routes.size} filtered routes")
+      logger.debug("Filtered out #{routes.size - filtered_routes.size} routes")
+
       schemas = {}
       all_components = {}
 
-      filtered_routes.each do |route|
+      filtered_routes.each_with_index do |route, index|
+        progress = "[#{index + 1}/#{filtered_routes.size}]"
+        endpoint = "#{route[:method]} #{route[:path]}"
+        logger.info("#{progress} Processing endpoint: #{endpoint}", emoji: :process)
+        
         controller_info = Parsers::ControllerParser.new(route).parse
 
-        next unless controller_info[:jbuilder_path]
+        unless controller_info[:jbuilder_path]
+          logger.warn("#{progress} No Jbuilder template found for #{endpoint}")
+          next
+        end
+        
+        logger.debug("#{progress} Found Jbuilder: #{controller_info[:jbuilder_path]}")
 
+        logger.debug("#{progress} Parsing Jbuilder template...")
         jbuilder_parser = Parsers::Jbuilder::JbuilderParser.new(controller_info[:jbuilder_path])
-        ast_node = jbuilder_parser.parse(parser_version: parser_version)
+        ast_node = jbuilder_parser.parse
 
         # Collect components from this parser
-        if ENV['RAILS_OPENAPI_DEBUG']
-          puts "🔍 DEBUG: jbuilder_parser has ast_parser: #{jbuilder_parser.respond_to?(:ast_parser)}"
-          puts "🔍 DEBUG: ast_parser is nil: #{jbuilder_parser.ast_parser.nil?}" if jbuilder_parser.respond_to?(:ast_parser)
-          if jbuilder_parser.respond_to?(:ast_parser) && jbuilder_parser.ast_parser && jbuilder_parser.ast_parser.respond_to?(:partial_components)
-            puts "🔍 DEBUG: partial_components count: #{jbuilder_parser.ast_parser.partial_components.size}"
+        if jbuilder_parser.respond_to?(:ast_parser) && jbuilder_parser.ast_parser && jbuilder_parser.ast_parser.respond_to?(:partial_components)
+          component_count = jbuilder_parser.ast_parser.partial_components.size
+          if component_count > 0
+            logger.debug("#{progress} Found #{component_count} partial components", emoji: :component)
+            all_components.merge!(jbuilder_parser.ast_parser.partial_components)
           end
         end
 
-        if jbuilder_parser.respond_to?(:ast_parser) &&
-           jbuilder_parser.ast_parser &&
-           jbuilder_parser.ast_parser.respond_to?(:partial_components) &&
-           jbuilder_parser.ast_parser.partial_components.any?
-          puts "📦 Merging #{jbuilder_parser.ast_parser.partial_components.size} components" if ENV['RAILS_OPENAPI_DEBUG']
-          all_components.merge!(jbuilder_parser.ast_parser.partial_components)
-        end
-
+        logger.debug("#{progress} Converting AST to OpenAPI schema...")
         schema = Processors::AstToSchemaProcessor.new.process_to_schema(ast_node)
+        
+        # Check if schema has meaningful content
+        if schema && schema["properties"] && !schema["properties"].empty?
+          logger.success("#{progress} ✓ Generated schema with #{schema["properties"].size} properties")
+        elsif schema && schema["type"]
+          logger.success("#{progress} ✓ Generated #{schema["type"]} schema")
+        else
+          logger.warn("#{progress} Generated empty or invalid schema")
+        end
+        
         schemas[route] = {
           schema: schema,
           parameters: controller_info[:parameters] || {},
           operation: {} # Operation data is not available in AST approach
         }
       rescue StandardError => e
-        puts "❌ ERROR processing route #{route[:method]} #{route[:path]}: #{e.class} - #{e.message}" if ENV['RAILS_OPENAPI_DEBUG']
-        puts "❌ ERROR at: #{e.backtrace.first(3).join("\n")}" if ENV['RAILS_OPENAPI_DEBUG']
+        logger.error("#{progress} ❌ ERROR processing #{endpoint}: #{e.class} - #{e.message}")
+        logger.error("#{progress} Stack trace: #{e.backtrace.first(3).join("\n")}")
         raise
       end
 
+      logger.info("Completed processing all endpoints")
+      logger.info("Generating YAML files...", emoji: :file)
+      
       Generators::YamlGenerator.new(schemas, components: all_components).generate
-      puts '✅ OpenAPI specification generated successfully!'
+      
+      # Summary
+      successful_schemas = schemas.count { |_, data| data[:schema] && !data[:schema].empty? }
+      logger.success("OpenAPI specification generated successfully!")
+      logger.info("📊 Summary: #{successful_schemas}/#{schemas.size} endpoints generated schemas")
     end
 
     private
