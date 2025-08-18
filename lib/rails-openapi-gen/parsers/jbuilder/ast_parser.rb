@@ -28,11 +28,11 @@ module RailsOpenapiGen::Parsers::Jbuilder
     # @return [RailsOpenapiGen::AstNodes::ObjectNode] Root AST node
     def parse(content = nil)
       content ||= File.read(@file_path)
-      
+
       begin
         # Try multiple parser approaches for better Ruby 3.1 compatibility
         ast = nil
-        
+
         # First try: Parser::CurrentRuby
         begin
           ast = Parser::CurrentRuby.parse(content, @file_path)
@@ -49,7 +49,7 @@ module RailsOpenapiGen::Parsers::Jbuilder
             logger.warn("All parser attempts failed for #{@file_path}")
             logger.warn("CurrentRuby error: #{e1.message}")
             logger.warn("Ruby31 error: #{e2.message}")
-            
+
             # For testing purposes, try fallback parsing for all cases when the Parser fails
             logger.warn("Attempting fallback parsing for #{@file_path}")
             return create_fallback_node_from_content(content)
@@ -805,95 +805,9 @@ module RailsOpenapiGen::Parsers::Jbuilder
     # @param content [String] Jbuilder template content
     # @return [RailsOpenapiGen::AstNodes::BaseNode] Appropriate fallback node
     def create_fallback_node_from_content(content)
-      puts "🔍 DEBUG: Creating fallback node from content: #{content.inspect}" if ENV['RAILS_OPENAPI_DEBUG']
-      if content.include?('json.array!')
-        create_test_array_node
-      elsif content.include?('json.partial!')
-        create_test_partial_node(content)
-      else
-        # Simple object with basic properties
-        @root_node
-      end
-    end
-
-    # Create a test array node for fallback parsing (used when Parser gem has compatibility issues)
-    # @return [RailsOpenapiGen::AstNodes::ArrayNode] Test array node
-    def create_test_array_node
-      array_node = RailsOpenapiGen::AstNodes::NodeFactory.create_array(
-        property_name: 'items',
-        comment_data: nil,
-        is_conditional: false,
-        is_root_array: true
-      )
-      
-      # Create a simple object with basic properties for testing
-      item_object = RailsOpenapiGen::AstNodes::NodeFactory.create_object(
-        property_name: 'items',
-        comment_data: nil,
-        is_conditional: false
-      )
-      
-      # Add some basic properties with mock comment data
-      property_configs = [
-        { name: 'id', type: 'integer', description: 'Experience ID' },
-        { name: 'company_name', type: 'string', description: 'Company name' },
-        { name: 'position', type: 'string', description: 'Position title' },
-        { name: 'end_date', type: 'string', description: 'End date', required: false }
-      ]
-      
-      property_configs.each do |config|
-        comment_data = RailsOpenapiGen::AstNodes::CommentData.new(
-          type: config[:type],
-          description: config[:description],
-          required: config.fetch(:required, true),
-          enum: nil,
-          conditional: false,
-          format: nil,
-          example: nil
-        )
-        
-        property_node = RailsOpenapiGen::AstNodes::NodeFactory.create_property(
-          property_name: config[:name],
-          comment_data: comment_data,
-          is_conditional: false
-        )
-        item_object.add_property(property_node)
-      end
-      
-      array_node.add_item(item_object)
-      array_node
-    end
-
-    # Create a test partial node for fallback parsing
-    # @param content [String] Jbuilder template content
-    # @return [RailsOpenapiGen::AstNodes::ObjectNode] Test object node with properties
-    def create_test_partial_node(content)
-      # Analyze content to determine what properties to add
-      object_node = @root_node
-      
-      if content.include?("json.partial!") && content.include?("_user")
-        # Add user properties
-        ['name', 'email'].each do |prop_name|
-          comment_data = RailsOpenapiGen::AstNodes::CommentData.new(
-            type: 'string',
-            description: "User #{prop_name}",
-            required: true,
-            enum: nil,
-            conditional: false,
-            format: nil,
-            example: nil
-          )
-          
-          property_node = RailsOpenapiGen::AstNodes::NodeFactory.create_property(
-            property_name: prop_name,
-            comment_data: comment_data,
-            is_conditional: false
-          )
-          object_node.add_property(property_node)
-        end
-      end
-      
-      object_node
+      error_msg = "Failed to parse Jbuilder template: #{@file_path}. The Ruby parser could not process the template syntax."
+      logger.error(error_msg)
+      raise RailsOpenapiGen::ParseError, error_msg
     end
 
     # Find partial path from component name (reverse of generate_component_name)
