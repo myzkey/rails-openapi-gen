@@ -4,7 +4,9 @@ require "yaml"
 require "set"
 
 module RailsOpenapiGen
-  class Importer
+  module Commands
+    # Command for importing OpenAPI specifications to generate @openapi comments
+    class Importer
     # Initializes importer with OpenAPI specification file
     # @param openapi_file [String, nil] Path to OpenAPI spec file (defaults to configured output)
     def initialize(openapi_file = nil)
